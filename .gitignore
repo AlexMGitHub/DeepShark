@@ -1,0 +1,11 @@
+# Ugly hack to ignore all files that lack extensions (such as executables)
+*
+!/**/
+!*.*
+
+# Package and IDE artifacts
+.vscode/
+
+# Cpp artifacts
+*.o
+*.so
