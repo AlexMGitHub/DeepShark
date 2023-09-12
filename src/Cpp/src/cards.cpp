@@ -23,6 +23,14 @@ using std::sort;
 using std::to_underlying;
 using std::vector;
 
+/* Card Method Definitions
+******************************************************************************/
+bool Card::operator==(const Card& other)
+{
+    return  rank == other.rank &&
+        suit == other.suit;
+}
+
 /* Deck Method Definitions
 ******************************************************************************/
 void Deck::m_build_deck()
@@ -390,6 +398,7 @@ bool Hand::is_four_of_a_kind()
             assert((high_hand.size() == MAX_CARDS_IN_HAND) && "Invalid  number of cards in hand!");
             return true;
         }
+        assert((value <= 4) && "Cannot have more than 4 of a kind!");
     }
     return false;
 }
@@ -467,6 +476,8 @@ void Hand::clear_hand()
 
 void Hand::determine_best_hand()
 {
+    assert((m_available_cards.size() >= MAX_CARDS_IN_HAND) &&
+        "Too few cards in deck to determine best hand!");
     sort_cards();
     // print_hand();
     if (is_flush())
@@ -540,15 +551,13 @@ void Hand::determine_best_hand()
     else
     {
         hand_rank = HandRank::High_Card;
+        size_t offset = m_available_cards.size() - MAX_CARDS_IN_HAND;
         for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
         {
-            best_hand[i] = m_available_cards[i + 2];
+            best_hand[i] = m_available_cards[i + offset];
         }
     }
     std::sort(best_hand.begin(), best_hand.end(), Hand::card_sorter);
-    // print_hand_rank();
-    // cout << "Best hand: " << endl;
-    // print_best_hand();
 }
 
 void Hand::print_best_hand()

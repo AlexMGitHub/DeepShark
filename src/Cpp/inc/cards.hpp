@@ -13,10 +13,10 @@
 
 /* Constants and Enums
 ******************************************************************************/
-const int NUMBER_CARDS_IN_DECK = 52;
-const int NUMBER_CARDS_IN_SUIT = 13;
-const int NUMBER_SUITS = 4;
-const int MAX_CARDS_IN_HAND = 5;
+const size_t NUMBER_CARDS_IN_DECK = 52;
+const size_t NUMBER_CARDS_IN_SUIT = 13;
+const size_t NUMBER_SUITS = 4;
+const size_t MAX_CARDS_IN_HAND = 5;
 
 enum class Rank : int
 {
@@ -91,6 +91,8 @@ struct Card
     // Data Members
     Suit suit;
     Rank rank;
+    // Member Functions
+    bool operator==(const Card& other);
 };
 
 class Deck
@@ -122,7 +124,7 @@ public:
     // Constructors
     Hand() {}
     // Data Members
-    HandRank hand_rank;
+    HandRank hand_rank = HandRank::High_Card;
     std::array<Card, MAX_CARDS_IN_HAND> best_hand;
     // Member Functions
     void add_card(const Card& c);
