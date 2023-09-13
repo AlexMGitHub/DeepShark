@@ -5,7 +5,6 @@
  /* Headers
  ******************************************************************************/
  // C++ standard library
-
 #include <algorithm> // For sort()
 #include <cassert>
 #include <iostream>
@@ -61,7 +60,9 @@ void Deck::print_cards()
 {
     for (const auto& i : m_cards)
     {
-        std::cout << std::to_underlying(i.suit) << std::to_underlying(i.rank)
+        std::cout
+            << std::to_underlying(i.suit)
+            << std::to_underlying(i.rank)
             << std::endl;
     }
 }
@@ -88,7 +89,7 @@ bool Hand::reverse_card_sorter(const Card& lhs, const Card& rhs)
 
 void Hand::sort_cards()
 {
-    std::sort(m_available_cards.begin(), m_available_cards.end(),
+    std::sort(available_cards.begin(), available_cards.end(),
         Hand::card_sorter);
 }
 
@@ -98,7 +99,7 @@ bool Hand::is_one_pair()
     vector<Card> remaining_cards;
     Rank pair_rank = Rank::No_Card;
     std::map<Rank, int> count;
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         count[card.rank]++;
     }
@@ -113,7 +114,7 @@ bool Hand::is_one_pair()
     {
         return false;
     }
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         if (card.rank == pair_rank)
         {
@@ -136,7 +137,7 @@ bool Hand::is_two_pair()
     vector<Rank> pairs;
     Card high_card;
     std::map<Rank, int> count;
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         count[card.rank]++;
     }
@@ -157,7 +158,7 @@ bool Hand::is_two_pair()
         std::sort(pairs.begin(), pairs.end());
         pairs.erase(pairs.begin());
     }
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         if (card.rank == pairs[0] || card.rank == pairs[1])
         {
@@ -179,7 +180,7 @@ bool Hand::is_three_of_a_kind()
     bool three = false;
     Rank three_rank = Rank::No_Card;
     std::map<Rank, int> count;
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         count[card.rank]++;
     }
@@ -197,7 +198,7 @@ bool Hand::is_three_of_a_kind()
     }
     Card high_card;
     Card next_highest_card;
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         if (card.rank == three_rank)
         {
@@ -221,7 +222,7 @@ bool Hand::is_three_of_a_kind()
 
 bool Hand::is_straight()
 {
-    return is_straight(m_available_cards);
+    return is_straight(available_cards);
 }
 
 bool Hand::is_straight(std::vector<Card> hand)
@@ -269,7 +270,7 @@ bool Hand::is_flush()
     c.clear();
     s.clear();
     flush_hand.clear();
-    for (const auto& i : m_available_cards)
+    for (const auto& i : available_cards)
     {
         switch (i.suit)
         {
@@ -335,7 +336,7 @@ bool Hand::is_full_house()
     bool pair = false;
     Rank pair_rank = Rank::No_Card;
     std::map<Rank, int> count;
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         count[card.rank]++;
     }
@@ -360,7 +361,7 @@ bool Hand::is_full_house()
     {
         return false;
     }
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         if (card.rank == three_rank || card.rank == pair_rank)
         {
@@ -374,7 +375,7 @@ bool Hand::is_four_of_a_kind()
 {
     high_hand.clear();
     std::map<Rank, int> count;
-    for (const auto& card : m_available_cards)
+    for (const auto& card : available_cards)
     {
         count[card.rank]++;
     }
@@ -383,7 +384,7 @@ bool Hand::is_four_of_a_kind()
         if (value == 4)
         {
             Card high_card;
-            for (const auto& card : m_available_cards)
+            for (const auto& card : available_cards)
             {
                 if (card.rank == key)
                 {
@@ -458,12 +459,12 @@ bool Hand::is_straight_flush()
 
 void Hand::add_card(const Card& c)
 {
-    m_available_cards.push_back(c);
+    available_cards.push_back(c);
 }
 
 void Hand::clear_hand()
 {
-    m_available_cards.clear();
+    available_cards.clear();
     d.clear();
     h.clear();
     c.clear();
@@ -476,7 +477,7 @@ void Hand::clear_hand()
 
 void Hand::determine_best_hand()
 {
-    assert((m_available_cards.size() >= MAX_CARDS_IN_HAND) &&
+    assert((available_cards.size() >= MAX_CARDS_IN_HAND) &&
         "Too few cards in deck to determine best hand!");
     sort_cards();
     // print_hand();
@@ -551,10 +552,10 @@ void Hand::determine_best_hand()
     else
     {
         hand_rank = HandRank::High_Card;
-        size_t offset = m_available_cards.size() - MAX_CARDS_IN_HAND;
+        size_t offset = available_cards.size() - MAX_CARDS_IN_HAND;
         for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
         {
-            best_hand[i] = m_available_cards[i + offset];
+            best_hand[i] = available_cards[i + offset];
         }
     }
     std::sort(best_hand.begin(), best_hand.end(), Hand::card_sorter);
@@ -577,13 +578,13 @@ void Hand::print_best_hand()
 
 void Hand::print_hand()
 {
-    if (m_available_cards.size() == 0)
+    if (available_cards.size() == 0)
     {
         cout << "No cards" << endl;
         return;
     }
 
-    for (const auto& j : m_available_cards)
+    for (const auto& j : available_cards)
     {
         cout << std::to_underlying(j.rank) << std::to_underlying(j.suit) << " ";
     }

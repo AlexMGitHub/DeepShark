@@ -109,7 +109,6 @@ public:
     Card& deal_one_card();
     void print_cards();
     void shuffle_deck();
-
 private:
     // Data Members
     int m_top_card_idx = 0;
@@ -124,6 +123,7 @@ public:
     // Constructors
     Hand() {}
     // Data Members
+    std::vector<Card> available_cards;
     HandRank hand_rank = HandRank::High_Card;
     std::array<Card, MAX_CARDS_IN_HAND> best_hand;
     // Member Functions
@@ -133,10 +133,8 @@ public:
     void print_best_hand();
     void print_hand();
     void print_hand_rank();
-
 private:
     // Data Members
-    std::vector<Card> m_available_cards;
     std::vector<Card> d, h, c, s, flush_hand, straight_hand, high_hand;
     // Member Functions
     static bool card_sorter(const Card& lhs, const Card& rhs);
