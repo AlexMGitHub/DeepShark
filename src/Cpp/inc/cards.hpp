@@ -1,12 +1,12 @@
 #pragma once
 
 /******************************************************************************
- * Declare constants and classes used to represent playing cards.
- *****************************************************************************/
+* Declare constants and classes used to represent playing cards.
+******************************************************************************/
 
- /* Headers
- ******************************************************************************/
- // C++ standard library
+/* Headers
+******************************************************************************/
+// C++ standard library
 #include <array>
 #include <map>
 #include <vector>

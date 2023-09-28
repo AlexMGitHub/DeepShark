@@ -1,12 +1,12 @@
 #pragma once
 
 /******************************************************************************
- * Declare classes representing a Texas Hold 'Em player.
- *****************************************************************************/
+* Declare classes representing a Texas Hold 'Em player.
+******************************************************************************/
 
- /* Headers
- ******************************************************************************/
- // C++ standard library
+/* Headers
+******************************************************************************/
+// C++ standard library
 #include <array>
 #include <map>
 #include <vector>
@@ -17,6 +17,8 @@
 ******************************************************************************/
 enum class Action : int
 {
+    No_Action,
+    All_In,
     Bet,
     Call,
     Check,
@@ -28,8 +30,10 @@ enum class Action : int
 enum class Blind : int
 {
     No_Blind,
-    Small,
-    Big
+    Dealer_Button,
+    Small_Blind,
+    Big_Blind,
+    Dealer_Button_and_Small_Blind
 };
 
 /* Declarations
@@ -37,18 +41,27 @@ enum class Blind : int
 class Player
 {
 public:
+    // Constructors
+    Player(unsigned chips, int idx) : m_chip_count(chips), player_idx(idx) {}
     // Data Members
     Blind blind = Blind::No_Blind;
+    Action prev_action = Action::No_Action;
+    const int player_idx;
     // Member Functions
-    Blind get_blind_status();
-    size_t get_card_count();
-    unsigned get_chip_count();
+    void eliminate_player();
+    void fold_player();
+    Blind get_blind_status() const;
+    std::array<Card, MAX_CARDS_IN_HAND> get_best_hand();
+    std::vector<Card> get_available_cards();
+    size_t get_card_count() const;
+    unsigned get_chip_count() const;
     unsigned pay_blind(unsigned chips);
-    unsigned player_act();
-    bool player_eliminated();
-    bool player_is_active();
+    unsigned player_act(GameState& gs);
+    bool is_player_active() const;
+    bool is_player_eliminated() const;
     void receive_card(const Card& c);
     void return_cards();
+    void set_player_active();
     void update_blind_status(Blind b);
     void win_chips(unsigned chips);
 private:

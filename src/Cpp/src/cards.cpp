@@ -1,10 +1,10 @@
 /******************************************************************************
- * Define classes used to represent playing cards.
- *****************************************************************************/
+* Define classes used to represent playing cards.
+******************************************************************************/
 
- /* Headers
- ******************************************************************************/
- // C++ standard library
+/* Headers
+******************************************************************************/
+// C++ standard library
 #include <algorithm> // For sort()
 #include <cassert>
 #include <iostream>
@@ -127,7 +127,7 @@ bool Hand::is_one_pair()
     }
     std::sort(remaining_cards.begin(), remaining_cards.end(), Hand::card_sorter);
     high_hand.insert(high_hand.end(), remaining_cards.end() - 3, remaining_cards.end());
-    assert((high_hand.size() == MAX_CARDS_IN_HAND) && "Invalid  number of cards in hand!");
+    assert((high_hand.size() == MAX_CARDS_IN_HAND) && "Invalid number of cards in hand!");
     return true;
 }
 
@@ -396,7 +396,8 @@ bool Hand::is_four_of_a_kind()
                 }
             }
             high_hand.push_back(high_card);
-            assert((high_hand.size() == MAX_CARDS_IN_HAND) && "Invalid  number of cards in hand!");
+            assert((high_hand.size() == MAX_CARDS_IN_HAND) &&
+                "Invalid number of cards in hand!");
             return true;
         }
         assert((value <= 4) && "Cannot have more than 4 of a kind!");
@@ -477,8 +478,16 @@ void Hand::clear_hand()
 
 void Hand::determine_best_hand()
 {
-    assert((available_cards.size() >= MAX_CARDS_IN_HAND) &&
-        "Too few cards in deck to determine best hand!");
+    // assert((available_cards.size() >= MAX_CARDS_IN_HAND) &&
+    //     "Too few cards in deck to determine best hand!");
+    if (available_cards.size() == 2)
+    {
+        best_hand = { available_cards[0],
+            available_cards[1],
+            Card(Suit::No_Card, Rank::No_Card),
+            Card(Suit::No_Card, Rank::No_Card),
+            Card(Suit::No_Card, Rank::No_Card) };
+    }
     sort_cards();
     // print_hand();
     if (is_flush())
