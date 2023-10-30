@@ -15,12 +15,14 @@
 #include <utility> // For to_underlying()
 // Project headers
 #include "cards.hpp"
+#include "constants.hpp"
 // Using statements
 using std::cout;
 using std::endl;
 using std::sort;
 using std::to_underlying;
 using std::vector;
+using namespace constants;
 
 /* Card Method Definitions
 ******************************************************************************/
@@ -28,6 +30,70 @@ bool Card::operator==(const Card& other)
 {
     return  rank == other.rank &&
         suit == other.suit;
+}
+
+bool Card::operator<(const Card& other)
+{
+    return  rank < other.rank;
+}
+
+std::ostream& operator<<(std::ostream& os, const Card& c)
+{
+    switch (c.rank)
+    {
+    case Rank::No_Card:
+        os << " ";
+        break;
+    case Rank::Jack:
+        os << "J";
+        break;
+    case Rank::Queen:
+        os << "Q";
+        break;
+    case Rank::King:
+        os << "K";
+        break;
+    case Rank::Ace:
+        os << "A";
+        break;
+    default:
+        os << to_underlying(c.rank);
+    }
+    // if (c.rank == Rank::No_Card)
+    // {
+    //     os << " ";
+    // }
+    // else
+    // {
+    //     os << to_underlying(c.rank);
+    // }
+    // if (c.suit == Suit::No_Card)
+    // {
+    //     os << " ";
+    // }
+    // else
+    // {
+    //     os << to_underlying(c.suit);
+    // }
+    switch (c.suit)
+    {
+    case Suit::Club:
+        os << "♣️";
+        break;
+    case Suit::Diamond:
+        os << "♦️";
+        break;
+    case Suit::Heart:
+        os << "♥️";
+        break;
+    case Suit::Spade:
+        os << "♠️";
+        break;
+    default:
+        // No_Card
+        os << " ";
+    }
+    return os;
 }
 
 /* Deck Method Definitions
@@ -51,7 +117,7 @@ void Deck::burn_one_card()
     m_top_card_idx++;
 }
 
-Card& Deck::deal_one_card()
+Card Deck::deal_one_card()
 {
     return m_cards[m_top_card_idx++];
 }
@@ -69,9 +135,8 @@ void Deck::print_cards()
 
 void Deck::shuffle_deck()
 {
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(m_cards.begin(), m_cards.end(), g);
+    std::shuffle(m_cards.begin(), m_cards.end(), rng);
+    m_top_card_idx = 0;
     std::cout << "Deck shuffled!" << std::endl;
 }
 
@@ -458,13 +523,23 @@ bool Hand::is_straight_flush()
     return is_straight(flush_hand);
 }
 
-void Hand::add_card(const Card& c)
+void Hand::add_card(const Card c)
 {
     available_cards.push_back(c);
+    if (available_cards.size() == 1)
+    {
+        hole_card1 = c;
+    }
+    else if (available_cards.size() == 2)
+    {
+        hole_card2 = c;
+    }
 }
 
 void Hand::clear_hand()
 {
+    hole_card1 = Card();
+    hole_card2 = Card();
     available_cards.clear();
     d.clear();
     h.clear();
@@ -480,6 +555,7 @@ void Hand::determine_best_hand()
 {
     // assert((available_cards.size() >= MAX_CARDS_IN_HAND) &&
     //     "Too few cards in deck to determine best hand!");
+    sort_cards();
     if (available_cards.size() == 2)
     {
         best_hand = { available_cards[0],
@@ -487,8 +563,16 @@ void Hand::determine_best_hand()
             Card(Suit::No_Card, Rank::No_Card),
             Card(Suit::No_Card, Rank::No_Card),
             Card(Suit::No_Card, Rank::No_Card) };
+        if (available_cards[0].rank == available_cards[1].rank)
+        {
+            hand_rank = HandRank::Pair;
+        }
+        else
+        {
+            hand_rank = HandRank::High_Card;
+        }
+        return;
     }
-    sort_cards();
     // print_hand();
     if (is_flush())
     {

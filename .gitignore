@@ -9,3 +9,6 @@
 # Cpp artifacts
 *.o
 *.so
+
+# Binary files (recorded games)
+*.bin
