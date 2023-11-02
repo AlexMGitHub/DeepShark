@@ -51,7 +51,8 @@ namespace constants
         Flop,
         Turn,
         River,
-        Showdown
+        Showdown,
+        Game_Result
     };
 
     enum class Action : int

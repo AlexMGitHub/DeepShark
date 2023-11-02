@@ -7,6 +7,7 @@
 // C++ standard library
 #include <algorithm> // For sort()
 #include <cassert>
+#include <deque>  // Temp
 #include <functional> // For std::greater
 #include <iostream>
 #include <random> // For shuffle()
@@ -18,6 +19,7 @@
 // Project headers
 #include "cards.hpp"
 #include "constants.hpp"
+#include "playback.hpp"
 #include "player.hpp"
 #include "serialize.hpp"
 #include "storage.hpp"
@@ -50,7 +52,7 @@ unsigned Pot::get_player_bets_by_round(unsigned player_idx, Round rnd) const
     return m_player_bets[player_idx][rnd_idx];
 }
 
-unsigned Pot::get_total_player_bets(int player_idx)
+unsigned Pot::get_total_player_bets(int player_idx) const
 {
     unsigned total = 0;
     for (int i = 0; i < MAX_BETTING_ROUNDS; i++)
@@ -91,57 +93,6 @@ void Pot::m_clear_players_bets(int player_idx)
         m_player_bets[player_idx][i] = 0;
     }
 }
-
-// unsigned Pot::m_pay_to_winner(GameState gs, int winner_idx)
-// {
-//     unsigned winnings = 0;
-//     int num_players_showdown = static_cast<int>(gs.showdown_players.size());
-//     if (num_players_showdown <= 1)
-//     {
-//         // The game ended before the showdown and all but one player folded
-//         winnings = m_chip_count;
-//         m_chip_count = 0;
-//         std::fill(&m_player_bets[0][0],
-//             &m_player_bets[0][0] + sizeof(m_player_bets), 0);
-//         return winnings;
-//     }
-//     // The game made it to the showdown stage with more than one player
-//     unsigned winner_chips_bet = 0;
-//     for (int i = 0; i < MAX_BETTING_ROUNDS; i++)
-//     {
-//         // Calculate how many chips were bet by the winner
-//         winner_chips_bet += m_player_bets[winner_idx][i];
-//         m_player_bets[winner_idx][i] = 0;
-//     }
-//     winnings += winner_chips_bet;
-//     unsigned player_total_chips = 0;
-//     // Compare the number of chips bet by the winner to the losers to check if
-//     // there are side pots
-//     for (int i = 0; i < MAX_PLAYER_COUNT; i++)
-//     {
-//         player_total_chips = 0;
-//         int j = 0;
-//         for (j = 0; j < MAX_BETTING_ROUNDS; j++)
-//         {
-//             player_total_chips += m_player_bets[i][j];
-//             m_player_bets[i][j] = 0;
-//         }
-//         if (player_total_chips <= winner_chips_bet)
-//         {
-//             // Winner bet equal or more chips than loser, so he gets them all
-//             winnings += player_total_chips;
-//             m_chip_count -= player_total_chips;
-//         }
-//         else
-//         {
-//             // Winner did not bet as much as loser, so there must be a side pot
-//             winnings += winner_chips_bet;
-//             m_chip_count -= winner_chips_bet;
-//             m_player_bets[i][j] = player_total_chips - winner_chips_bet;
-//         }
-//     }
-//     return winnings;
-// }
 
 /* Dealer Method Definitions
 ******************************************************************************/
@@ -238,6 +189,7 @@ void Dealer::deal_river(vector<Player>& player_list)
 
 /* Texas Hold 'Em Method Definitions
 ******************************************************************************/
+std::deque<std::string> console_output = { "", "", "", "", "", "", "", "", "", "" };
 void TexasHoldEm::begin_tournament()
 {
     if (!m_tournament_started)
@@ -257,6 +209,7 @@ void TexasHoldEm::begin_tournament()
         gs.random_seed = tourn_hist.random_seed;
         gs.tournament_number = tourn_hist.tournament_number;
         gs.game_number = game_hist.game_number;
+        gs.initial_num_players = initial_num_players;
         gs.num_players = tourn_hist.initial_player_count;
         for (int i = 0; i < initial_num_players; i++)
         {
@@ -293,9 +246,9 @@ void TexasHoldEm::m_begin_round(GameState gs)
         int utg_idx = 0;
         while (1)
         {
-            if (full_player_list[j].blind != Blind::No_Blind) { break; }
             if (!full_player_list[j].is_player_eliminated())
             {
+                if (full_player_list[j].blind != Blind::No_Blind) { break; }
                 full_player_list[j].blind = UTG_Players[utg_idx++];
             }
             j = (j + 1) % initial_num_players;
@@ -318,15 +271,18 @@ void TexasHoldEm::m_begin_round(GameState gs)
     {
         full_player_list[m_sb_idx].prev_action = Action::All_In;
         gs.all_in_below_min_raise = true;
+        gs.raise_player_idx = m_sb_idx;
     }
-    else if ((bb_pmt < bb))
+    if ((bb_pmt < bb))
     {
         full_player_list[m_bb_idx].prev_action = Action::All_In;
         gs.all_in_below_min_raise = true;
+        gs.raise_player_idx = m_bb_idx;
     }
-    else
+    if ((sb_pmt == sb) && (bb_pmt == bb))
     {
         gs.all_in_below_min_raise = false;
+        gs.raise_player_idx = m_bb_idx;
     }
     // Deal cards to players
     dealer.shuffle_deck();
@@ -346,41 +302,111 @@ void TexasHoldEm::m_begin_round(GameState gs)
         gs.remaining_players[i] = !full_player_list[i].is_player_eliminated();
     }
     m_update_game_state(gs);
-    //game_hist.states.push_back(gs);
     m_pre_flop(gs);
 }
 
-bool TexasHoldEm::m_is_betting_over(Round rnd) const
+bool TexasHoldEm::m_is_betting_over(GameState& gs) const
 {
-    if (m_get_num_active_players() == 1) { return true; }
-    unsigned num_chips_bet;
-    unsigned bet;
+    static int start_action = 0;
+    static Round round = Round::Pre_Flop;
+    static int adjusted_num_players = MAX_PLAYER_COUNT;
+    if (gs.action_number == 0)
+    {
+        start_action = 0;
+        round = Round::Pre_Flop;
+        adjusted_num_players = num_players;
+    }
+    if (gs.round != round)
+    {
+        round = gs.round;
+        start_action = gs.action_number;
+    }
+    if (m_get_num_active_players() == 1 ||
+        m_get_num_active_not_allin_players() == 0) {
+        return true;
+    }
+    unsigned num_chips_bet = 0;
+    unsigned bet = 0;
+    unsigned all_in_bet = 0;
     bool first_active_player = true;
+    vector<Action> player_actions;
     for (const auto& player : full_player_list)
     {
         // Make sure player is active and not all-in
-        if (player.is_player_active() && (player.get_chip_count() != 0))
+        if (player.is_player_active())
         {
-            // Store amount first active player has placed into the pot
-            if (first_active_player)
+            if ((player.get_chip_count() != 0))
             {
-                first_active_player = false;
-                num_chips_bet = pot.get_player_bets_by_round(
-                    player.player_idx,
-                    rnd);
+            // Store amount first active player has placed into the pot
+                if (first_active_player)
+                {
+                    first_active_player = false;
+                    num_chips_bet = pot.get_player_bets_by_round(
+                        player.player_idx,
+                        gs.round);
+                    player_actions.push_back(player.prev_action);
+                }
+                else
+                {
+                    // Betting is over if all active and not all-in players have 
+                    // bet the same amount, otherwise betting is not over.
+                    bet = pot.get_player_bets_by_round(
+                        player.player_idx,
+                        gs.round);
+                    if (bet != num_chips_bet) { return false; }
+                    player_actions.push_back(player.prev_action);
+                }
             }
             else
             {
-                // Betting is over if all active and not all-in players have 
-                // bet the same amount, otherwise betting is not over.
                 bet = pot.get_player_bets_by_round(
                     player.player_idx,
-                    rnd);
-                if (bet != num_chips_bet) { return false; }
+                    gs.round);
+                if (bet > all_in_bet) { all_in_bet = bet; }
             }
         }
     }
-    if (num_chips_bet == 0) { return false; }  // Betting hasn't started yet
+    // At start of round blinds could put players all-in, and if the remaining
+    // players haven't either bet at least as much then betting isn't over
+    if (num_chips_bet < all_in_bet) { return false; }
+    // Ensure that betting doesn't end before every player has had a chance to
+    // act at least once.
+    if (gs.action_number < start_action + num_players)
+    {
+        if (gs.round == Round::Pre_Flop)
+        {
+            // If any players were put all-in by the blinds then it will throw
+            // off the count.  adjusted_num_players accounts for this.
+            adjusted_num_players = num_players;
+            unsigned sb = BLINDS_STRUCTURE.at(num_players).first;
+            unsigned bb = BLINDS_STRUCTURE.at(num_players).second;
+            if (full_player_list[m_sb_idx].get_chip_count() == 0 &&
+                pot.get_total_player_bets(m_sb_idx) < sb)
+            {
+                adjusted_num_players--;
+            }
+            if (full_player_list[m_bb_idx].get_chip_count() == 0 &&
+                pot.get_total_player_bets(m_bb_idx) < bb)
+            {
+                adjusted_num_players--;
+            }
+        }
+        else if (gs.action_number != 0 && gs.action_number == start_action)
+        {
+            adjusted_num_players = m_get_num_active_not_allin_players();
+        }
+        if (gs.action_number < start_action + adjusted_num_players)
+        {
+            // Pre-flop every player should get the chance to act
+            // This catches an edge case where players call the big blind on the
+            // pre-flop and the big blind player doesn't get a chance to act
+            return false;  // Not all players have acted during the pre-flop
+        }
+        else
+        {
+            return true;  // All players have acted during the pre-flop
+        }
+    }
     return true;
 }
 
@@ -400,12 +426,21 @@ int TexasHoldEm::m_get_num_active_not_allin_players() const
 int TexasHoldEm::m_get_num_active_players() const
 {
     int num_active = 0;
-    auto active_players = m_get_vec_active_players();
-    for (const auto& player : active_players)
+    for (const auto& player : full_player_list)
     {
-        if (player) { num_active++; }
+        if (player.is_player_active()) { num_active++; }
     }
     return num_active;
+}
+
+vector<int> TexasHoldEm::m_get_vec_remaining_players() const
+{
+    vector<int> remaining_players;
+    for (const auto& player : full_player_list)
+    {
+        remaining_players.push_back(!player.is_player_eliminated());
+    }
+    return remaining_players;
 }
 
 vector<unsigned> TexasHoldEm::m_get_player_chip_counts() const
@@ -423,14 +458,7 @@ vector<int> TexasHoldEm::m_get_vec_active_players() const
     vector<int> active_players;
     for (const auto& player : full_player_list)
     {
-        if (player.is_player_active())
-        {
-            active_players.push_back(true);
-        }
-        else
-        {
-            active_players.push_back(false);
-        }
+        active_players.push_back(player.is_player_active());
     }
     return active_players;
 }
@@ -449,6 +477,7 @@ void TexasHoldEm::m_update_game_state(GameState& gs)
     }
     gs.player_chip_counts = m_get_player_chip_counts();
     gs.num_active_players = m_get_num_active_players();
+    gs.remaining_players = m_get_vec_remaining_players();
     gs.active_player_list = m_get_vec_active_players();
     gs.best_hand = full_player_list[gs.player_idx].get_best_hand();
     gs.available_cards = full_player_list[gs.player_idx].get_available_cards();
@@ -462,7 +491,6 @@ void TexasHoldEm::m_update_game_state(GameState& gs)
     gs.pot_chip_count = pot.get_chip_count();
     gs.pot_player_bets = pot.m_player_bets;
     // Update vector sizes
-    gs.initial_num_players = initial_num_players;
     gs.num_available_cards = gs.available_cards.size();
     gs.num_legal_actions = gs.legal_actions.size();
     gs.num_showdown_players = gs.showdown_players.size();
@@ -472,7 +500,7 @@ void TexasHoldEm::m_update_game_state(GameState& gs)
 void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
 {
     int i = starting_plyr;
-    while (!m_is_betting_over(gs.round))
+    while (!m_is_betting_over(gs))
     {
         if (!full_player_list[i].is_player_eliminated() &&
             full_player_list[i].is_player_active() &&
@@ -499,6 +527,9 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
                 gs.legal_actions = { Action::Fold };
                 if (gs.all_in_below_min_raise && (gs.raise_player_idx == i))
                 {
+                    // No other player has re-raised since the raise that 
+                    // caused the all-in below the min raise, therefore
+                    // betting action is not re-opened
                     gs.legal_to_raise = false;
                 }
                 else
@@ -524,12 +555,13 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
                 {
                     if (gs.chips_to_call == 0)
                     {
+                        // Post-flop first bet
                         gs.legal_actions.push_back(Action::Bet);
                     }
                     else
                     {
+                        // Pre-flop big blind is first bet, so player raises
                         gs.legal_actions.push_back(Action::Raise);
-                        gs.raise_player_idx = i;
                     }
                 }
                 else if (gs.legal_to_raise &&
@@ -537,15 +569,15 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
                     (gs.max_bet > (gs.min_to_raise + gs.chips_to_call))
                     )
                 {
-                    if (gs.action_number == 0)
-                    {
-                        // First action of the game by the UTG player
-                        gs.legal_actions.push_back(Action::Raise);
-                    }
-                    else
-                    {
-                        gs.legal_actions.push_back(Action::Re_Raise);
-                    }
+                    // if (gs.action_number == 0)
+                    // {
+                    //     // First action of the game by the UTG player
+                    //     gs.legal_actions.push_back(Action::Raise);
+                    // }
+                    // else
+                    // {
+                    gs.legal_actions.push_back(Action::Re_Raise);
+                // }
                 }
                 if (!gs.legal_to_raise && (gs.chips_to_call > 0))
                 {
@@ -558,6 +590,7 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
                     (gs.player_bet == 0)) && "Invalid player bet!");
             }
             if ((gs.player_bet == gs.max_bet) &&
+                (gs.player_bet != gs.chips_to_call) &&
                 (gs.player_bet < (gs.chips_to_call + gs.min_to_raise)))
             {
                 assert((gs.player_action == Action::All_In) &&
@@ -592,6 +625,7 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
                 gs.min_to_raise = gs.player_bet - gs.chips_to_call;
                 gs.min_bet = gs.player_bet + gs.sum_prev_bets;
                 gs.raise_active = true;
+                gs.raise_player_idx = i;
             }
             else if ((gs.player_bet == 0) && (gs.chips_to_call > 0))
             {
@@ -613,11 +647,14 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
             {
                 // Player has called
                 // No change to min bet or min raise
-                assert((gs.player_action == Action::Call) &&
+                assert(((gs.player_action == Action::Call) ||
+                    (gs.player_action == Action::All_In &&
+                        gs.player_bet == gs.max_bet)) &&
                     "Action should be call!");
             }
             // Store game state
             game_hist.states.push_back(gs);
+            print_state(gs);
             gs.action_number++;
             pot.add_chips(gs.player_bet, i, gs.round);
         }
@@ -637,13 +674,15 @@ void TexasHoldEm::m_pre_flop(GameState gs)
     gs.round = Round::Pre_Flop;
     gs.legal_to_raise = true;
     gs.raise_active = false;
-    gs.raise_player_idx = m_bb_idx;
-    gs.all_in_below_min_raise = false;
+    //gs.all_in_below_min_raise = false;
     gs.action_number = 0;
     gs.pot_chip_count = pot.get_chip_count();
     m_betting_loop(gs, starting_player);
-    if (m_get_num_active_not_allin_players() == 1)
+    if (m_get_num_active_not_allin_players() <= 1)
     {
+        dealer.deal_flop(full_player_list);
+        dealer.deal_turn(full_player_list);
+        dealer.deal_river(full_player_list);
         m_showdown(gs);
     }
     else
@@ -661,13 +700,15 @@ void TexasHoldEm::m_flop(GameState gs)
     gs.num_active_players = m_get_num_active_players();
     gs.legal_to_raise = true;
     gs.raise_active = false;
-    gs.raise_player_idx = m_bb_idx;
+    gs.raise_player_idx = -1;
     gs.all_in_below_min_raise = false;
     gs.pot_chip_count = pot.get_chip_count();
     dealer.deal_flop(full_player_list);
     m_betting_loop(gs, m_sb_idx);
-    if (m_get_num_active_not_allin_players() == 1)
+    if (m_get_num_active_not_allin_players() <= 1)
     {
+        dealer.deal_turn(full_player_list);
+        dealer.deal_river(full_player_list);
         m_showdown(gs);
     }
     else
@@ -684,13 +725,14 @@ void TexasHoldEm::m_turn(GameState gs)
     gs.num_active_players = m_get_num_active_players();
     gs.legal_to_raise = true;
     gs.raise_active = false;
-    gs.raise_player_idx = m_bb_idx;
+    gs.raise_player_idx = -1;
     gs.all_in_below_min_raise = false;
     gs.pot_chip_count = pot.get_chip_count();
     dealer.deal_turn(full_player_list);
     m_betting_loop(gs, m_sb_idx);
-    if (m_get_num_active_not_allin_players() == 1)
+    if (m_get_num_active_not_allin_players() <= 1)
     {
+        dealer.deal_river(full_player_list);
         m_showdown(gs);
     }
     else
@@ -707,7 +749,7 @@ void TexasHoldEm::m_river(GameState gs)
     gs.num_active_players = m_get_num_active_players();
     gs.legal_to_raise = true;
     gs.raise_active = false;
-    gs.raise_player_idx = m_bb_idx;
+    gs.raise_player_idx = -1;
     gs.all_in_below_min_raise = false;
     gs.pot_chip_count = pot.get_chip_count();
     dealer.deal_river(full_player_list);
@@ -732,14 +774,19 @@ void TexasHoldEm::m_showdown(GameState gs)
                 ));
         }
     }
-    //game_hist.states.push_back(gs);
     gs.num_showdown_players = gs.showdown_players.size();
+    game_hist.states.push_back(gs);
+    print_state(gs);
     m_end_round(gs);
 }
 
 int TexasHoldEm::m_player_closest_to_left_of_dealer(vector<int> tie_list)
 {
+    /* Iterate through the list of tied players and return the index of the
+    player who is closest to the left of the dealer button.
+    */
     int min_distance = MAX_PLAYER_COUNT;
+    int closest_plyr_idx = -1;
     for (size_t i = 0; i < tie_list.size(); i++)
     {
         for (int dist = 0; dist < MAX_PLAYER_COUNT; dist++)
@@ -749,26 +796,19 @@ int TexasHoldEm::m_player_closest_to_left_of_dealer(vector<int> tie_list)
                 if (dist < min_distance)
                 {
                     min_distance = dist;
+                    closest_plyr_idx = tie_list[i];
                 }
+                break;
             }
         }
     }
-    return min_distance;
+    assert((closest_plyr_idx >= 0) && "Closest player is invalid!");
+    return closest_plyr_idx;
 }
-
-// Need to check if game moves to next phase or if all other players folded
-// Need to decide where actions taken by players will be verified
-// Probably makes most sense to check inside the player class, but will 
-// need to pass the player the current bet/raise amount, and previous
-// player action.  Probably also pass what they've contributed so far?
-// Or maybe pass a list of legal actions
-
-
-// Tied hadn split the pot evenly.  if tehre is a odd chip left, it goes to the
-// player closest to the left of the dealer button
 
 void TexasHoldEm::m_end_round(GameState gs)
 {
+    gs.round = Round::Game_Result;
     // Determine winner of round
     if (m_get_num_active_players() == 1)
     {
@@ -779,6 +819,28 @@ void TexasHoldEm::m_end_round(GameState gs)
         unsigned winnings = pot.m_pay_to_winner(player_bet);
         gs.showdown_players[0].chips_won = winnings;
         full_player_list[winner_idx].win_chips(winnings);
+        if (pot.m_chip_count > 0)
+        {
+            /*
+            An edge case that occurs more often during heads-up play.
+            The big blind puts one player all-in, but small blind folds
+            rather than call the big blind.  All-in player wins, but can
+            only take as many chips from each player as he bet.
+            If his stack was smaller than the small blind, then the small
+            blind player should be returned the difference in chips.  But the
+            small blind player already folded, thus leaving chips in the pot.
+            */
+            unsigned player_bet;
+            for (int i = 0; i < initial_num_players; i++)
+            {
+                // Return remainder of folded players' bet to them
+                player_bet = pot.get_total_player_bets(i);
+                full_player_list[i].win_chips(player_bet);
+                pot.m_clear_players_bets(i);
+                pot.m_chip_count -= player_bet;
+                if (pot.m_chip_count == 0) { break; }
+            }
+        }
     }
     else
     {
@@ -816,7 +878,7 @@ void TexasHoldEm::m_end_round(GameState gs)
             if (tie_count > 1)
             {
                 // There's been a tie, and so we must split the pot or side pot
-                for (int i = winner_idx; i < winner_idx + tie_count; i++)
+                for (int i = winner_idx; i < tie_count; i++)
                 {
                     if ((i > winner_idx) &&
                         (gs.showdown_players[i].total_chips_bet ==
@@ -830,26 +892,31 @@ void TexasHoldEm::m_end_round(GameState gs)
                     // the player who bet the least amount is first in the vector
                     smallest_bet = gs.showdown_players[i].total_chips_bet;
                     winnings = pot.m_pay_to_winner(smallest_bet);
-                    remainder = winnings % tie_count;
-                    split_winnings = (winnings - remainder) / tie_count;
+                    remainder = winnings % (tie_count - i);
+                    split_winnings = (winnings - remainder) / (tie_count - i);
                     // Determine player closest to left of dealer button
-                    for (int j = winner_idx; j < winner_idx + tie_count; j++)
+                    for (int j = winner_idx; j < winner_idx + tie_count - i; j++)
                     {
                         tie_player_indices.push_back(gs.showdown_players[j].player_idx);
                     }
                     closest_plyr = m_player_closest_to_left_of_dealer(tie_player_indices);
                     tie_player_indices.clear();
                     // Pay each winner their equal portion of the pot or side pot
-                    for (int k = winner_idx; k < winner_idx + tie_count; k++)
-                    {
-                        full_player_list[k].win_chips(split_winnings);
-                        gs.showdown_players[k].chips_won += split_winnings;
-                    }
                     // Pay the odd chip(s) to the closest to the left of the dealer
+                    int plyr_idx;
                     full_player_list[closest_plyr].win_chips(remainder);
-                    gs.showdown_players[closest_plyr].chips_won += remainder;
+                    for (int k = winner_idx; k < winner_idx + tie_count - i; k++)
+                    {
+                        gs.showdown_players[k].chips_won += split_winnings;
+                        plyr_idx = gs.showdown_players[k].player_idx;
+                        full_player_list[plyr_idx].win_chips(split_winnings);
+                        if (plyr_idx == closest_plyr)
+                        {
+                            gs.showdown_players[k].chips_won += remainder;
+                        }
+                    }
+                    winner_idx++;
                 }
-                winner_idx++;
             }
             else
             {
@@ -886,23 +953,25 @@ void TexasHoldEm::m_end_round(GameState gs)
     // Tournament history.
     m_update_game_state(gs);
     game_hist.states.push_back(gs);
+    print_state(gs);
     game_hist.num_states = game_hist.states.size();
     tourn_hist.games.push_back(game_hist);
     tourn_hist.num_games = tourn_hist.games.size();
     if (num_players == 1)
     {
         m_tournament_completed = true;
+        cout << "Tournament is complete!" << endl;
         write_tournamenthistory("test_game.bin", tourn_hist);
         cout << "Write tournament history successful!" << endl;
         return;
     }
-    if (tourn_hist.games.size() >= 10)
-    {
-        tourn_hist.num_games = tourn_hist.games.size();
-        write_tournamenthistory("test_game.bin", tourn_hist);
-        cout << "Write tournament history successful!" << endl;
-        exit(-1);
-    }
+    // if (tourn_hist.games.size() >= 10)
+    // {
+    //     tourn_hist.num_games = tourn_hist.games.size();
+    //     write_tournamenthistory("test_game.bin", tourn_hist);
+    //     cout << "Write tournament history successful!" << endl;
+    //     exit(-1);
+    // }
     // All players return their cards
     for (auto& player : full_player_list)
     {
@@ -980,46 +1049,3 @@ void TexasHoldEm::m_move_blinds()
         }
     }
 }
-
-// What if player can't afford blind?
-
-// Before the flop, big blind always acts last
-// Under the Gun (UTG) player after big blind goes first
-// After the flop for the rest of the game the button is the last player to act
-// That is, the player before the small blind
-// Or in other words, the small blind goes first
-// The first person to act after the flop (small blind) receives card first
-// On showdown reveal hand order is same as post-flop betting order; small blind first button last
-
-// Heads up poker (2 players)
-// Dealer button posts small blind and is first to act pre-flop
-// After flop big blind is first to play
-
-// button
-// sb
-// bb
-// utg
-
-// if a player can't afford the big blind, each subsequent player who posts the bb
-// has the excess money put in a side pot that the poor player can't win
-
-// Player should always be able to afford the small blind, because the smallest
-// betting increment is the SB, so a player that can't afford the SB has zero
-// chips and is eliminated
-
-// but the SB increases over time, so that's not necessarily true
-
-
-
-// To raise, have to raise by at least BB
-
-// To re-raise, have to raise by at least the last raise amount
-
-// One caveat, if the player is open-raising (first raise, hasn't paid BB)
-// then it's double the amount he raised, which would be that amount minus the
-// BB since he hasn't paid it yet
-
-// Allowed to re-raise less than the previous raise only if going all-in
-// https://www.888poker.com/magazine/strategy/ultimate-guide-re-raising-poker
-
-// the dealer will burn a card before the flop, turn, and river.

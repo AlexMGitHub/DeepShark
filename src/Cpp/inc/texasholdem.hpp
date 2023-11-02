@@ -36,7 +36,7 @@ public:
     // Member Functions
     void add_chips(unsigned chips, unsigned player_idx, constants::Round rnd);
     unsigned get_chip_count();
-    unsigned get_total_player_bets(int player_idx);
+    unsigned get_total_player_bets(int player_idx) const;
     unsigned get_player_bets_by_round(unsigned player_idx, constants::Round rnd) const;
 private:
     // Friends
@@ -138,8 +138,9 @@ private:
     void m_river(GameState gs);
     void m_showdown(GameState gs);
     void m_end_round(GameState gs);
-    bool m_is_betting_over(constants::Round rnd) const;
+    bool m_is_betting_over(GameState& gs) const;
     int m_get_num_active_players() const;
+    std::vector<int> m_get_vec_remaining_players() const;
     int m_get_num_active_not_allin_players() const;
     std::vector<int> m_get_vec_active_players() const;
     void m_move_blinds();

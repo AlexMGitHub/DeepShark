@@ -58,6 +58,9 @@ string to_string(const Round& rnd)
     case Round::Showdown:
         return "Showdown";
         break;
+    case Round::Game_Result:
+        return "Game Result";
+        break;
     default:
         cout << "Invalid round!" << endl;
         exit(-1);
@@ -232,9 +235,8 @@ string calc_pot_per_player(const GameState& gs, const int plyr_idx)
     return to_string(total);
 }
 
-void print_state(const GameState& gs)
+void build_table(Table& player_table, const GameState& gs)
 {
-    Table player_table;
     player_table.format()
         .multi_byte_characters(true)
         .font_align(FontAlign::center);
@@ -297,11 +299,13 @@ void print_state(const GameState& gs)
         "Best Hand",
         "Hand Rank"
         });
-    for (int i = 0; i < gs.num_players; i++)
+    for (int i = 0; i < gs.initial_num_players; i++)
     {
         if (gs.remaining_players[i])
         {
-            if (i == gs.player_idx)
+            if (i == gs.player_idx &&
+                gs.round != Round::Showdown &&
+                gs.round != Round::Game_Result)
             {
                 player_table.add_row({
                 to_string(i),
@@ -330,7 +334,26 @@ void print_state(const GameState& gs)
                     });
             }
         }
+        else
+        {
+            player_table.add_row({
+                "Eliminated",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+                });
+        }
     }
+}
+
+void format_table(Table& player_table, const GameState& gs)
+{
+    // Color header rows of table
     player_table[0].format()
         .font_color(Color::cyan)
         .font_style({ FontStyle::bold });
@@ -340,11 +363,13 @@ void print_state(const GameState& gs)
     player_table[6].format()
         .font_color(Color::cyan)
         .font_style({ FontStyle::bold });
+    // Highlight game number at the start of a new game
     if (gs.action_number == 0)
     {
         player_table[1][1].format()
             .font_color(Color::green);
     }
+    // Highlight current round and common cards dealt during round
     player_table[1][3].format()
         .font_color(Color::green);
     switch (gs.round)
@@ -364,6 +389,7 @@ void print_state(const GameState& gs)
     default:
         break;
     }
+
     for (int i = 0; i < gs.initial_num_players; i++)
     {
         if (!gs.active_player_list[i])
@@ -373,13 +399,26 @@ void print_state(const GameState& gs)
                 .font_style({ FontStyle::italic });
         }
     }
-    if (gs.round != Round::Showdown)
+    if (gs.round != Round::Showdown &&
+        gs.round != Round::Game_Result)
     {
         player_table[7 + gs.player_idx].format()
             .font_color(Color::yellow)
             .font_style({ FontStyle::bold });
     }
-    else
+    else if (gs.round == Round::Showdown)
+    {
+        for (const auto& plyr : gs.showdown_players)
+        {
+            player_table[7 + plyr.player_idx][7].format()
+                .font_color(Color::red)
+                .font_style({ FontStyle::bold });
+            player_table[7 + plyr.player_idx][8].format()
+                .font_color(Color::red)
+                .font_style({ FontStyle::bold });
+        }
+    }
+    else  // Game results
     {
         for (const auto& plyr : gs.showdown_players)
         {
@@ -391,14 +430,24 @@ void print_state(const GameState& gs)
             }
         }
     }
+}
+
+void print_table(const GameState& gs)
+{
+    Table player_table;
+    build_table(player_table, gs);
+    format_table(player_table, gs);
     cout << player_table << endl;
 }
 
-void print_console_output(std::deque<string>& console_output,
-    const GameState& gs)
+
+
+void print_console_output(const GameState& gs)
 {
-    string output;
+    static std::deque<string> console_output(MAX_CONSOLE_LINES, "");
+    static vector<int> remaining_players(gs.initial_num_players, true);
     static Round rnd = Round::Pre_Flop;
+    string output;
     if (gs.game_number == 0 && gs.action_number == 0)
     {
         output = "- Game #" + to_string(gs.game_number) +
@@ -408,7 +457,8 @@ void print_console_output(std::deque<string>& console_output,
     if (gs.round != rnd)
     {
         rnd = gs.round;
-        if (gs.round != Round::Showdown)
+        if (gs.round != Round::Showdown &&
+            gs.round != Round::Game_Result)
         {
             if (gs.round == Round::Pre_Flop)
             {
@@ -422,7 +472,7 @@ void print_console_output(std::deque<string>& console_output,
                 console_output.push_back(output);
             }
         }
-        else
+        else if (gs.round == Round::Showdown)
         {
             output = "- Players ";
             for (const auto& plyr : gs.showdown_players)
@@ -431,6 +481,9 @@ void print_console_output(std::deque<string>& console_output,
             }
             output += "enter the Showdown.";
             console_output.push_back(output);
+        }
+        else  // Game_Results
+        {
             for (const auto& plyr : gs.showdown_players)
             {
                 if (plyr.chips_won > 0)
@@ -441,10 +494,24 @@ void print_console_output(std::deque<string>& console_output,
                     console_output.push_back(output);
                 }
             }
-
+            if (gs.remaining_players != remaining_players)
+            {
+                output = "- Players ";
+                for (int i = 0; i < gs.initial_num_players; i++)
+                {
+                    if (gs.remaining_players[i] != remaining_players[i])
+                    {
+                        output += to_string(i) + ", ";
+                    }
+                }
+                output += "are eliminated from the tournament!";
+                console_output.push_back(output);
+                remaining_players = gs.remaining_players;
+            }
         }
     }
-    if (gs.round != Round::Showdown)
+    if (gs.round != Round::Showdown &&
+        gs.round != Round::Game_Result)
     {
         output = "- Player " + to_string(gs.player_idx);
         if (gs.player_action == Action::Call
@@ -455,7 +522,8 @@ void print_console_output(std::deque<string>& console_output,
         }
         else if (gs.player_action == Action::All_In)
         {
-            output += " goes " + to_string(gs.player_action) + "!";
+            output += " goes " + to_string(gs.player_action) + " with $" +
+                to_string(gs.player_bet) + "!";
         }
         else if (gs.player_action == Action::Bet)
         {
@@ -480,17 +548,20 @@ void print_console_output(std::deque<string>& console_output,
     }
 }
 
+void print_state(const GameState& gs)
+{
+    system("clear");
+    print_table(gs);
+    print_console_output(gs);
+}
+
 void playback_tournament(TournamentHistory& th)
 {
-    std::deque<string> console_output = { "", "", "", "", "", "", "", "", "", "" };
     for (const auto& game : th.games)
     {
         for (const auto& state : game.states)
         {
-            //std::cout << "\x1B[2J\x1B[H";  // Clear screen
-            system("clear");
             print_state(state);
-            print_console_output(console_output, state);
             cout << "\nPress enter to continue: ";
             std::cin.get();
         }
