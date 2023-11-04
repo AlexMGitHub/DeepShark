@@ -21,13 +21,22 @@ using namespace constants;
 /* Constants and Enums
 ******************************************************************************/
 
-/* GameState Method Definitions
+/* ShowdownStruct Method Definitions
 ******************************************************************************/
 Rank ShowdownStruct::identify_card_groups(
     const array<Card, MAX_CARDS_IN_HAND> best_hand,
     int group_size,
     Rank ignore_rank) const
 {
+    /**
+     * Search poker hand for a group of cards of the same rank.
+     *
+     * @param best_hand is a five-card poker hand.
+     * @param group_size group size to search for (e.g. 2 for a pair of cards)
+     * @param ignore_rank ignores one pair of cards so that the second pair's
+     * rank can be identified.  Default value is No_Card.
+     * @return Rank of the identified group of cards.
+    */
     std::map<Rank, int> count;
     for (const auto& card : best_hand)
     {
@@ -41,13 +50,19 @@ Rank ShowdownStruct::identify_card_groups(
             return key;
         }
     }
-    exit(-1);
+    exit(-1);  // Terminate program if group isn't found
 }
 
 vector<Rank> ShowdownStruct::identify_kickers(
     const array<Card, MAX_CARDS_IN_HAND> best_hand
 ) const
 {
+    /**
+     * Identify all kickers in poker hand.
+     *
+     * @param best_hand is a five-card poker hand.
+     * @return A sorted vector of each kicker card in the hand.
+    */
     std::map<Rank, int> count;
     for (const auto& card : best_hand)
     {
@@ -68,6 +83,19 @@ vector<Rank> ShowdownStruct::identify_kickers(
 
 bool ShowdownStruct::operator>(const ShowdownStruct& other) const
 {
+    /**
+     * Determine if one ShowdownStruct is greater than another.
+     *
+     * Compares the poker hand stored in the struct to determine if one struct
+     * is greater than the other.  Used to determine the winner of the poker
+     * game.  If the poker hands are equal, uses the number of chips bet by the
+     * player to break the tie.  The player who bet the lesser number of chips
+     * is considered to have a stronger hand.  This is used for distributing
+     * any side pots that might exist.
+     *
+     * @param other is another ShowdownStruct.
+     * @return True if the ShowdownStruct has a stronger poker hand.
+    */
     if (hand_rank > other.hand_rank)
     {
         return true;
@@ -102,6 +130,7 @@ bool ShowdownStruct::operator>(const ShowdownStruct& other) const
             Rank low_pair;
             Rank other_high;
             Rank other_low;
+            // Determine which pair is higher ranked
             if (pair_rank1 > pair_rank2)
             {
                 high_pair = pair_rank1;
@@ -112,6 +141,7 @@ bool ShowdownStruct::operator>(const ShowdownStruct& other) const
                 high_pair = pair_rank2;
                 low_pair = pair_rank1;
             }
+            // Determine higher ranked pair for other player
             if (other_rank1 > other_rank2)
             {
                 other_high = other_rank1;
@@ -122,14 +152,17 @@ bool ShowdownStruct::operator>(const ShowdownStruct& other) const
                 other_high = other_rank2;
                 other_low = other_rank1;
             }
+            // High pair rank determines winner
             if (high_pair > other_high) { return true; }
             else if (high_pair < other_high) { return false; }
             else
             {
+                // Tie broken by lower ranked pair
                 if (low_pair > other_low) { return true; }
                 else if (low_pair < other_low) { return false; }
                 else
                 {
+                    // Tie of lower ranked pair broken by kicker
                     Rank kicker = identify_kickers(best_hand)[0];
                     Rank other_kicker = identify_kickers(other.best_hand)[0];
                     if (kicker > other_kicker) { return true; }
@@ -225,6 +258,16 @@ bool ShowdownStruct::operator>(const ShowdownStruct& other) const
 
 bool ShowdownStruct::operator==(const ShowdownStruct& other)
 {
+    /**
+     * Compare equality of two ShowdownStructs.
+     *
+     * Compares the poker hand stored in the struct to determine if two
+     * structs are equal.  Used to check for ties when determining the winner
+     * of the poker game.
+     *
+     * @param other is another ShowdownStruct.
+     * @return True if the ShowdownStructs have equal strength poker hands.
+    */
     if (hand_rank != other.hand_rank) { return false; }
     for (int i = MAX_CARDS_IN_HAND - 1; i >= 0; i--)
     {

@@ -8,7 +8,6 @@
 ******************************************************************************/
 // C++ standard library
 #include <array>
-#include <functional>
 #include <vector>
 // Project headers
 #include "constants.hpp"
@@ -109,9 +108,6 @@ struct GameState
     // After Showdown
     size_t num_showdown_players;
     std::vector<ShowdownStruct> showdown_players;
-    size_t num_winners;
-    std::vector<int> winners;
-    std::vector<unsigned> winner_payouts;
 };
 
 struct GameHistory
@@ -123,9 +119,21 @@ struct GameHistory
 
 struct TournamentHistory
 {
+    // Constructors
+    TournamentHistory() {} // Default constructor for serialize
+    TournamentHistory(
+        int tourn_num,
+        int seed,
+        int plyr_cnt) :
+        tournament_number(tourn_num),
+        random_seed(seed),
+        initial_player_count(plyr_cnt) {}
+    // Data Members
     int tournament_number;
-    int initial_player_count;
     int random_seed;
+    int initial_player_count;
+    std::vector<int> finishing_order;
+    std::vector<int> game_eliminated;
     size_t num_games;
     std::vector<GameHistory> games;
 };

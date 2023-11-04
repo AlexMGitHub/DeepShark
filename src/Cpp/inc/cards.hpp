@@ -8,7 +8,6 @@
 ******************************************************************************/
 // C++ standard library
 #include <array>
-#include <map>
 #include <random> // For shuffle() and mt19937
 #include <vector>
 // Project headers
@@ -78,14 +77,14 @@ private:
     // Data Members
     std::vector<Card> d, h, c, s, flush_hand, straight_hand, high_hand;
     // Member Functions
-    void sort_cards();
-    bool is_one_pair();
-    bool is_two_pair();
-    bool is_three_of_a_kind();
-    bool is_straight();
-    bool is_straight(std::vector<Card> hand);
-    bool is_flush();
-    bool is_full_house();
-    bool is_four_of_a_kind();
-    bool is_straight_flush();
+    void m_sort_cards();
+    bool m_is_one_pair();
+    bool m_is_two_pair();
+    bool m_is_three_of_a_kind();
+    bool m_is_straight();
+    bool m_is_straight(std::vector<Card> hand);
+    bool m_is_flush();
+    bool m_is_full_house();
+    bool m_is_four_of_a_kind();
+    bool m_is_straight_flush();
 };

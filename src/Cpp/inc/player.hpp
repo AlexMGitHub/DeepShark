@@ -8,7 +8,6 @@
 ******************************************************************************/
 // C++ standard library
 #include <array>
-#include <map>
 #include <random> // For mt19937 and normal distribution
 #include <vector>
 // Project headers

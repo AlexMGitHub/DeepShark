@@ -1,7 +1,20 @@
 # DeepShark
  A project to apply deep reinforcement learning to the game of Texas hold 'em poker.
 
-The name of the project, DeepShark, is a compounding of the phrases "Deep learning" and "card Shark."  Deep learning refers to machine learning methods that utilize artificial neural network architectures, while a "shark" is slang for a highly skilled poker player.  I would like to train an ANN to play poker well, hence DeepShark.
+The name of the project, DeepShark, is a compounding of the phrases "deep learning" and "card shark."  Deep learning refers to machine learning methods that utilize artificial neural network architectures, while a "shark" is slang for a highly skilled poker player.  I would like to train an ANN to play poker well, hence DeepShark.
+
+
+### Considerations for Neural Network Architecture
+One point of consideration is whether the neural network architecture ought to be some sort of recurrent neural network or other configuration that remembers previous states.
+
+Without memory, the neural network will essentially just be learning how strong a particular poker hand is.  This functionality could be easily reproduced by a look-up table.  An ANN with memory of previous states could identify player behavior patterns.  Poker playing styles tend to fall along a two-axis spectrum: players can be "tight" or "loose" and "aggressive" or "passive."  The resulting four quadrants describe play styles that could be identified and exploited by an opponent.  For instance, a loose and aggressive play style describes a player who plays a wide range of starting hands and bets aggressively - which means that they are often bluffing.  An observant opponent might notice this tendency to play weak hands and bluff, and be more likely to call their raises.  Similarly, a tight and aggressive player will only play a narrow range of hands and will bet aggressively when he has good cards.  An observant player would be less likely to call their bets as they probably aren't bluffing.
+
+### Development Environment
+DeepShark was developed using Windows Subsystem for Linux (WSL) with an Ubuntu image.  The reported g++ compiler version used for the C++ code is:
+
+`g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0`
+
+There is some non-portable code (e.g. system("clear") to clear the terminal) that will not run in a non-Linux environment.
 
 ## Abbreviated No Limit Texas Hold 'Em Poker Rules
 
@@ -52,6 +65,6 @@ The following is a partial list of rules that are specific to the No Limit Texas
 *   In the case of a tie, the pot is split evenly amongst the winners.  If the pot is not evenly divisible then the remaining chip(s) are given to the player closest to the left (clockwise) of the dealer.
 *   It's possible for there to be multiple ties splitting multiple side pots, and each pot must be split amongst the winners
 
-    
+## References and Acknowledgements
 
-
+Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.

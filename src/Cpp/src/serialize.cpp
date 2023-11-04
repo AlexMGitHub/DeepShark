@@ -12,6 +12,7 @@
 // Project headers
 #include "cards.hpp"
 #include "constants.hpp"
+#include "serialize.hpp"
 #include "storage.hpp"
 // Using statements
 using std::cout;
@@ -63,90 +64,6 @@ void write_showdownstruct(std::ofstream& fs, ShowdownStruct& sd)
         fs.write(reinterpret_cast<char*>(&sd.hand_rank), sizeof sd.hand_rank);
         fs.write(reinterpret_cast<char*>(&sd.total_chips_bet), sizeof sd.total_chips_bet);
         fs.write(reinterpret_cast<char*>(&sd.chips_won), sizeof sd.chips_won);
-    }
-}
-
-void write_gamestate(std::ofstream& fs, GameState& gs)
-{
-    if (!fs.is_open())
-    {
-        cout << "Failed to open file!" << endl;
-        exit(-1);
-    }
-    else
-    {
-        fs.write(reinterpret_cast<char*>(&gs.random_seed), sizeof gs.random_seed);
-        fs.write(reinterpret_cast<char*>(&gs.tournament_number), sizeof gs.tournament_number);
-        fs.write(reinterpret_cast<char*>(&gs.game_number), sizeof gs.game_number);
-        fs.write(reinterpret_cast<char*>(&gs.initial_num_players), sizeof gs.initial_num_players);
-        fs.write(reinterpret_cast<char*>(&gs.num_players), sizeof gs.num_players);
-        fs.write(reinterpret_cast<char*>(&gs.num_active_players), sizeof gs.num_active_players);
-        fs.write(reinterpret_cast<char*>(&gs.action_number), sizeof gs.action_number);
-        fs.write(reinterpret_cast<char*>(&gs.round), sizeof gs.round);
-        // Player info        
-        fs.write(reinterpret_cast<char*>(&gs.player_idx), sizeof gs.player_idx);
-        fs.write(reinterpret_cast<char*>(&gs.blinds[0]), sizeof(gs.blinds[0]) * gs.initial_num_players);
-        fs.write(reinterpret_cast<char*>(&gs.last_actions[0]), sizeof(gs.last_actions[0]) * gs.initial_num_players);
-        fs.write(reinterpret_cast<char*>(&gs.ai_types[0]), sizeof(gs.ai_types[0]) * gs.initial_num_players);
-        fs.write(reinterpret_cast<char*>(&gs.hole_cards[0]), sizeof(gs.hole_cards[0]) * gs.initial_num_players);
-        fs.write(reinterpret_cast<char*>(&gs.best_hands[0]), sizeof(gs.best_hands[0]) * gs.initial_num_players);
-        fs.write(reinterpret_cast<char*>(&gs.hand_ranks[0]), sizeof(gs.hand_ranks[0]) * gs.initial_num_players);
-        fs.write(reinterpret_cast<char*>(&gs.remaining_players[0]), sizeof(gs.remaining_players[0]) * gs.initial_num_players);
-        // Before action
-        fs.write(reinterpret_cast<char*>(&gs.sum_prev_bets), sizeof gs.sum_prev_bets);
-        fs.write(reinterpret_cast<char*>(&gs.legal_to_raise), sizeof gs.legal_to_raise);
-        fs.write(reinterpret_cast<char*>(&gs.raise_active), sizeof gs.raise_active);
-        fs.write(reinterpret_cast<char*>(&gs.all_in_below_min_raise), sizeof gs.all_in_below_min_raise);
-        fs.write(reinterpret_cast<char*>(&gs.raise_player_idx), sizeof gs.raise_player_idx);
-        fs.write(reinterpret_cast<char*>(&gs.pot_chip_count), sizeof gs.pot_chip_count);
-        fs.write(reinterpret_cast<char*>(&gs.chips_to_call), sizeof gs.chips_to_call);
-        fs.write(reinterpret_cast<char*>(&gs.min_bet), sizeof gs.min_bet);
-        fs.write(reinterpret_cast<char*>(&gs.max_bet), sizeof gs.max_bet);
-        fs.write(reinterpret_cast<char*>(&gs.min_to_raise), sizeof gs.min_to_raise);
-        fs.write(reinterpret_cast<char*>(&gs.flop_card1), sizeof gs.flop_card1);
-        fs.write(reinterpret_cast<char*>(&gs.flop_card2), sizeof gs.flop_card2);
-        fs.write(reinterpret_cast<char*>(&gs.flop_card3), sizeof gs.flop_card3);
-        fs.write(reinterpret_cast<char*>(&gs.turn_card), sizeof gs.turn_card);
-        fs.write(reinterpret_cast<char*>(&gs.river_card), sizeof gs.river_card);
-
-        // Vectors and arrays
-        fs.write(reinterpret_cast<char*>(&gs.pot_player_bets[0]),
-            sizeof(unsigned) * MAX_PLAYER_COUNT * MAX_BETTING_ROUNDS);
-
-        fs.write(reinterpret_cast<char*>(&gs.player_chip_counts[0]),
-            sizeof(gs.player_chip_counts[0]) * gs.initial_num_players);
-
-        fs.write(reinterpret_cast<char*>(&gs.active_player_list[0]),
-            sizeof(gs.active_player_list[0]) * gs.initial_num_players);
-
-        fs.write(reinterpret_cast<char*>(&gs.best_hand[0]),
-            sizeof(gs.best_hand[0]) * MAX_CARDS_IN_HAND);
-
-        fs.write(reinterpret_cast<char*>(&gs.num_available_cards), sizeof gs.num_available_cards);
-        fs.write(reinterpret_cast<char*>(&gs.available_cards[0]),
-            sizeof(gs.available_cards[0]) * gs.num_available_cards);
-
-        fs.write(reinterpret_cast<char*>(&gs.num_legal_actions), sizeof gs.num_legal_actions);
-        fs.write(reinterpret_cast<char*>(&gs.legal_actions[0]),
-            sizeof(gs.legal_actions[0]) * gs.num_legal_actions);
-
-        // After action
-        fs.write(reinterpret_cast<char*>(&gs.player_action), sizeof gs.player_action);
-        fs.write(reinterpret_cast<char*>(&gs.player_bet), sizeof gs.player_bet);
-
-        // After Showdown
-        fs.write(reinterpret_cast<char*>(&gs.num_showdown_players), sizeof gs.num_showdown_players);
-        for (size_t i = 0; i < gs.num_showdown_players; i++)
-        {
-            write_showdownstruct(fs, gs.showdown_players[i]);
-        }
-
-        fs.write(reinterpret_cast<char*>(&gs.num_winners), sizeof gs.num_winners);
-        fs.write(reinterpret_cast<char*>(&gs.winners[0]),
-            sizeof(gs.winners[0]) * gs.num_winners);
-
-        fs.write(reinterpret_cast<char*>(&gs.winner_payouts[0]),
-            sizeof(gs.winner_payouts[0]) * gs.num_winners);
     }
 }
 
@@ -237,17 +154,84 @@ GameState read_gamestate(std::ifstream& fs)
         {
             gs.showdown_players.push_back(read_showdownstruct(fs));
         }
-
-        fs.read(reinterpret_cast<char*>(&gs.num_winners), sizeof gs.num_winners);
-        gs.winners.resize(gs.num_winners);
-        fs.read(reinterpret_cast<char*>(&gs.winners[0]),
-            sizeof(gs.winners[0]) * gs.num_winners);
-
-        gs.winner_payouts.resize(gs.num_winners);
-        fs.read(reinterpret_cast<char*>(&gs.winner_payouts[0]),
-            sizeof(gs.winner_payouts[0]) * gs.num_winners);
-
         return gs;
+    }
+}
+
+void write_gamestate(std::ofstream& fs, GameState& gs)
+{
+    if (!fs.is_open())
+    {
+        cout << "Failed to open file!" << endl;
+        exit(-1);
+    }
+    else
+    {
+        fs.write(reinterpret_cast<char*>(&gs.random_seed), sizeof gs.random_seed);
+        fs.write(reinterpret_cast<char*>(&gs.tournament_number), sizeof gs.tournament_number);
+        fs.write(reinterpret_cast<char*>(&gs.game_number), sizeof gs.game_number);
+        fs.write(reinterpret_cast<char*>(&gs.initial_num_players), sizeof gs.initial_num_players);
+        fs.write(reinterpret_cast<char*>(&gs.num_players), sizeof gs.num_players);
+        fs.write(reinterpret_cast<char*>(&gs.num_active_players), sizeof gs.num_active_players);
+        fs.write(reinterpret_cast<char*>(&gs.action_number), sizeof gs.action_number);
+        fs.write(reinterpret_cast<char*>(&gs.round), sizeof gs.round);
+        // Player info        
+        fs.write(reinterpret_cast<char*>(&gs.player_idx), sizeof gs.player_idx);
+        fs.write(reinterpret_cast<char*>(&gs.blinds[0]), sizeof(gs.blinds[0]) * gs.initial_num_players);
+        fs.write(reinterpret_cast<char*>(&gs.last_actions[0]), sizeof(gs.last_actions[0]) * gs.initial_num_players);
+        fs.write(reinterpret_cast<char*>(&gs.ai_types[0]), sizeof(gs.ai_types[0]) * gs.initial_num_players);
+        fs.write(reinterpret_cast<char*>(&gs.hole_cards[0]), sizeof(gs.hole_cards[0]) * gs.initial_num_players);
+        fs.write(reinterpret_cast<char*>(&gs.best_hands[0]), sizeof(gs.best_hands[0]) * gs.initial_num_players);
+        fs.write(reinterpret_cast<char*>(&gs.hand_ranks[0]), sizeof(gs.hand_ranks[0]) * gs.initial_num_players);
+        fs.write(reinterpret_cast<char*>(&gs.remaining_players[0]), sizeof(gs.remaining_players[0]) * gs.initial_num_players);
+        // Before action
+        fs.write(reinterpret_cast<char*>(&gs.sum_prev_bets), sizeof gs.sum_prev_bets);
+        fs.write(reinterpret_cast<char*>(&gs.legal_to_raise), sizeof gs.legal_to_raise);
+        fs.write(reinterpret_cast<char*>(&gs.raise_active), sizeof gs.raise_active);
+        fs.write(reinterpret_cast<char*>(&gs.all_in_below_min_raise), sizeof gs.all_in_below_min_raise);
+        fs.write(reinterpret_cast<char*>(&gs.raise_player_idx), sizeof gs.raise_player_idx);
+        fs.write(reinterpret_cast<char*>(&gs.pot_chip_count), sizeof gs.pot_chip_count);
+        fs.write(reinterpret_cast<char*>(&gs.chips_to_call), sizeof gs.chips_to_call);
+        fs.write(reinterpret_cast<char*>(&gs.min_bet), sizeof gs.min_bet);
+        fs.write(reinterpret_cast<char*>(&gs.max_bet), sizeof gs.max_bet);
+        fs.write(reinterpret_cast<char*>(&gs.min_to_raise), sizeof gs.min_to_raise);
+        fs.write(reinterpret_cast<char*>(&gs.flop_card1), sizeof gs.flop_card1);
+        fs.write(reinterpret_cast<char*>(&gs.flop_card2), sizeof gs.flop_card2);
+        fs.write(reinterpret_cast<char*>(&gs.flop_card3), sizeof gs.flop_card3);
+        fs.write(reinterpret_cast<char*>(&gs.turn_card), sizeof gs.turn_card);
+        fs.write(reinterpret_cast<char*>(&gs.river_card), sizeof gs.river_card);
+
+        // Vectors and arrays
+        fs.write(reinterpret_cast<char*>(&gs.pot_player_bets[0]),
+            sizeof(unsigned) * MAX_PLAYER_COUNT * MAX_BETTING_ROUNDS);
+
+        fs.write(reinterpret_cast<char*>(&gs.player_chip_counts[0]),
+            sizeof(gs.player_chip_counts[0]) * gs.initial_num_players);
+
+        fs.write(reinterpret_cast<char*>(&gs.active_player_list[0]),
+            sizeof(gs.active_player_list[0]) * gs.initial_num_players);
+
+        fs.write(reinterpret_cast<char*>(&gs.best_hand[0]),
+            sizeof(gs.best_hand[0]) * MAX_CARDS_IN_HAND);
+
+        fs.write(reinterpret_cast<char*>(&gs.num_available_cards), sizeof gs.num_available_cards);
+        fs.write(reinterpret_cast<char*>(&gs.available_cards[0]),
+            sizeof(gs.available_cards[0]) * gs.num_available_cards);
+
+        fs.write(reinterpret_cast<char*>(&gs.num_legal_actions), sizeof gs.num_legal_actions);
+        fs.write(reinterpret_cast<char*>(&gs.legal_actions[0]),
+            sizeof(gs.legal_actions[0]) * gs.num_legal_actions);
+
+        // After action
+        fs.write(reinterpret_cast<char*>(&gs.player_action), sizeof gs.player_action);
+        fs.write(reinterpret_cast<char*>(&gs.player_bet), sizeof gs.player_bet);
+
+        // After Showdown
+        fs.write(reinterpret_cast<char*>(&gs.num_showdown_players), sizeof gs.num_showdown_players);
+        for (size_t i = 0; i < gs.num_showdown_players; i++)
+        {
+            write_showdownstruct(fs, gs.showdown_players[i]);
+        }
     }
 }
 
@@ -301,8 +285,17 @@ TournamentHistory read_tournamenthistory(string filename)
     else
     {
         fs.read(reinterpret_cast<char*>(&th.tournament_number), sizeof th.tournament_number);
-        fs.read(reinterpret_cast<char*>(&th.initial_player_count), sizeof th.initial_player_count);
         fs.read(reinterpret_cast<char*>(&th.random_seed), sizeof th.random_seed);
+        fs.read(reinterpret_cast<char*>(&th.initial_player_count), sizeof th.initial_player_count);
+
+        th.finishing_order.resize(th.initial_player_count);
+        fs.read(reinterpret_cast<char*>(&th.finishing_order[0]),
+            sizeof(th.finishing_order[0]) * th.initial_player_count);
+
+        th.game_eliminated.resize(th.initial_player_count);
+        fs.read(reinterpret_cast<char*>(&th.game_eliminated[0]),
+            sizeof(th.game_eliminated[0]) * th.initial_player_count);
+
         fs.read(reinterpret_cast<char*>(&th.num_games), sizeof th.num_games);
         for (size_t i = 0; i < th.num_games; i++)
         {
@@ -324,8 +317,15 @@ void write_tournamenthistory(string filename, TournamentHistory& th)
     else
     {
         fs.write(reinterpret_cast<char*>(&th.tournament_number), sizeof th.tournament_number);
-        fs.write(reinterpret_cast<char*>(&th.initial_player_count), sizeof th.initial_player_count);
         fs.write(reinterpret_cast<char*>(&th.random_seed), sizeof th.random_seed);
+        fs.write(reinterpret_cast<char*>(&th.initial_player_count), sizeof th.initial_player_count);
+
+        fs.write(reinterpret_cast<char*>(&th.finishing_order[0]),
+            sizeof(th.finishing_order[0]) * th.initial_player_count);
+
+        fs.write(reinterpret_cast<char*>(&th.game_eliminated[0]),
+            sizeof(th.game_eliminated[0]) * th.initial_player_count);
+
         fs.write(reinterpret_cast<char*>(&th.num_games), sizeof th.num_games);
         for (size_t i = 0; i < th.num_games; i++)
         {

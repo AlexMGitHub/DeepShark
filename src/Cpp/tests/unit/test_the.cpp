@@ -34,7 +34,7 @@ using std::vector;
 
 int main()
 {
-    TexasHoldEm the;
+    TexasHoldEm the(10, 1, 0, false);
     the.begin_tournament();
     cout << std::filesystem::current_path() << endl;
     TournamentHistory th = read_tournamenthistory("test_game.bin");

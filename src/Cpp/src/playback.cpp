@@ -12,25 +12,20 @@
 // Project headers
 #include "constants.hpp"
 #include "cards.hpp"
+#include "playback.hpp"
 #include "storage.hpp"
 #include "tabulate/tabulate.hpp"
 // Using statements
 using std::cout;
 using std::endl;
-using std::sort;
 using std::string;
 using std::to_string;
 using std::to_underlying;
 using std::vector;
 using namespace constants;
 using namespace tabulate;
-//using Row_t = Table::Row_t;
 
-/* Forward Declarations
-******************************************************************************/
-
-
-/* Playback Definitions
+/* Overloaded to_string() Functions
 ******************************************************************************/
 string to_string(const Card& c)
 {
@@ -215,8 +210,13 @@ string to_string(const std::array<Card, constants::MAX_CARDS_IN_HAND> best_hand)
         to_string(best_hand[4]);
 }
 
+/* Playback Definitions
+******************************************************************************/
 string calc_pot_per_round(const GameState& gs, const Round rd)
 {
+    /**
+     * Calculate the total number of chips bet in a specified betting round.
+    */
     unsigned total = 0;
     for (int i = 0; i < MAX_PLAYER_COUNT; i++)
     {
@@ -227,6 +227,9 @@ string calc_pot_per_round(const GameState& gs, const Round rd)
 
 string calc_pot_per_player(const GameState& gs, const int plyr_idx)
 {
+    /**
+     * Calculate total number of chips bet by a player over all betting rounds.
+    */
     unsigned total = 0;
     for (int i = 0; i < MAX_BETTING_ROUNDS; i++)
     {
@@ -237,8 +240,11 @@ string calc_pot_per_player(const GameState& gs, const int plyr_idx)
 
 void build_table(Table& player_table, const GameState& gs)
 {
+    /**
+     * Build the structure of a table to represent the poker game.
+    */
     player_table.format()
-        .multi_byte_characters(true)
+        .multi_byte_characters(true)  // Need to align card suit symbols
         .font_align(FontAlign::center);
     player_table.add_row({
         "Tournament Number",
@@ -301,12 +307,14 @@ void build_table(Table& player_table, const GameState& gs)
         });
     for (int i = 0; i < gs.initial_num_players; i++)
     {
-        if (gs.remaining_players[i])
+        if (gs.remaining_players[i])  // If player not eliminated from tourney
         {
             if (i == gs.player_idx &&
                 gs.round != Round::Showdown &&
                 gs.round != Round::Game_Result)
             {
+                // Game state records current player's chips bet and chip count
+                // prior to the action, and so must add or subtract the bet
                 player_table.add_row({
                 to_string(i),
                 to_string(gs.blinds[i]),
@@ -321,6 +329,7 @@ void build_table(Table& player_table, const GameState& gs)
             }
             else
             {
+                // Non-current players can use game state values directly
                 player_table.add_row({
                     to_string(i),
                     to_string(gs.blinds[i]),
@@ -334,7 +343,7 @@ void build_table(Table& player_table, const GameState& gs)
                     });
             }
         }
-        else
+        else  // Player eliminated from tournament
         {
             player_table.add_row({
                 "Eliminated",
@@ -353,6 +362,9 @@ void build_table(Table& player_table, const GameState& gs)
 
 void format_table(Table& player_table, const GameState& gs)
 {
+    /**
+     * Format the table used to represent the poker game.
+    */
     // Color header rows of table
     player_table[0].format()
         .font_color(Color::cyan)
@@ -389,7 +401,7 @@ void format_table(Table& player_table, const GameState& gs)
     default:
         break;
     }
-
+    // Grey out folded players
     for (int i = 0; i < gs.initial_num_players; i++)
     {
         if (!gs.active_player_list[i])
@@ -399,15 +411,18 @@ void format_table(Table& player_table, const GameState& gs)
                 .font_style({ FontStyle::italic });
         }
     }
+    // Highlight players
     if (gs.round != Round::Showdown &&
         gs.round != Round::Game_Result)
     {
+        // Highlight the current player in yellow
         player_table[7 + gs.player_idx].format()
             .font_color(Color::yellow)
             .font_style({ FontStyle::bold });
     }
     else if (gs.round == Round::Showdown)
     {
+        // Highlight showdown players' hands in red
         for (const auto& plyr : gs.showdown_players)
         {
             player_table[7 + plyr.player_idx][7].format()
@@ -420,6 +435,7 @@ void format_table(Table& player_table, const GameState& gs)
     }
     else  // Game results
     {
+        // Highlight game winners in magenta
         for (const auto& plyr : gs.showdown_players)
         {
             if (plyr.chips_won > 0)
@@ -434,22 +450,27 @@ void format_table(Table& player_table, const GameState& gs)
 
 void print_table(const GameState& gs)
 {
+    /**
+     * Build, format, and print the table representing the poker game.
+    */
     Table player_table;
     build_table(player_table, gs);
     format_table(player_table, gs);
     cout << player_table << endl;
 }
 
-
-
 void print_console_output(const GameState& gs)
 {
+    /**
+     * Print console messages describing the poker game.
+    */
     static std::deque<string> console_output(MAX_CONSOLE_LINES, "");
     static vector<int> remaining_players(gs.initial_num_players, true);
     static Round rnd = Round::Pre_Flop;
     string output;
     if (gs.game_number == 0 && gs.action_number == 0)
     {
+        // Print game number and dealer message for first game of tournament
         output = "- Game #" + to_string(gs.game_number) +
             ": Dealer deals cards to players.";
         console_output.push_back(output);
@@ -460,6 +481,7 @@ void print_console_output(const GameState& gs)
         if (gs.round != Round::Showdown &&
             gs.round != Round::Game_Result)
         {
+            // Comment on the changing of the betting round
             if (gs.round == Round::Pre_Flop)
             {
                 output = "- Game #" + to_string(gs.game_number) +
@@ -474,6 +496,7 @@ void print_console_output(const GameState& gs)
         }
         else if (gs.round == Round::Showdown)
         {
+            // Describe which players enter the showdown round
             output = "- Players ";
             for (const auto& plyr : gs.showdown_players)
             {
@@ -486,7 +509,7 @@ void print_console_output(const GameState& gs)
         {
             for (const auto& plyr : gs.showdown_players)
             {
-                if (plyr.chips_won > 0)
+                if (plyr.chips_won > 0)  // Print winning player(s)
                 {
                     output = "- Player " + to_string(plyr.player_idx) +
                         " won $" + to_string(plyr.chips_won) + " with a " +
@@ -496,7 +519,7 @@ void print_console_output(const GameState& gs)
             }
             if (gs.remaining_players != remaining_players)
             {
-                output = "- Players ";
+                output = "- Players ";  // Print eliminated players
                 for (int i = 0; i < gs.initial_num_players; i++)
                 {
                     if (gs.remaining_players[i] != remaining_players[i])
@@ -507,9 +530,17 @@ void print_console_output(const GameState& gs)
                 output += "are eliminated from the tournament!";
                 console_output.push_back(output);
                 remaining_players = gs.remaining_players;
+                if (gs.num_players == 1)
+                {
+                    int winner = gs.showdown_players[0].player_idx;
+                    output = "- Player " + to_string(winner) +
+                        " won the tournament!";
+                    console_output.push_back(output);
+                }
             }
         }
     }
+    // Describe player action
     if (gs.round != Round::Showdown &&
         gs.round != Round::Game_Result)
     {
@@ -540,7 +571,7 @@ void print_console_output(const GameState& gs)
     }
     while (console_output.size() > MAX_CONSOLE_LINES)
     {
-        console_output.pop_front();
+        console_output.pop_front();  // Delete old console messages
     }
     for (const auto& line : console_output)
     {
@@ -550,6 +581,9 @@ void print_console_output(const GameState& gs)
 
 void print_state(const GameState& gs)
 {
+    /**
+     * Clear the terminal and then print the current poker game state.
+    */
     system("clear");
     print_table(gs);
     print_console_output(gs);
@@ -557,6 +591,9 @@ void print_state(const GameState& gs)
 
 void playback_tournament(TournamentHistory& th)
 {
+    /**
+     * Play back the entire poker tournament to terminal one state at a time.
+    */
     for (const auto& game : th.games)
     {
         for (const auto& state : game.states)

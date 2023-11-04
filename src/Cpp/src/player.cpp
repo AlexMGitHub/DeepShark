@@ -5,15 +5,10 @@
 /* Headers
 ******************************************************************************/
 // C++ standard library
-#include <algorithm> // For sort()
 #include <array>
 #include <cassert>
 #include <iostream>
 #include <random> // For shuffle(), uniform_int_distribution<>
-#include <ranges> // For views::drop()
-#include <stdexcept>
-#include <string>
-#include <utility> // For to_underlying()
 // Project headers
 #include "player.hpp"
 #include "constants.hpp"
@@ -22,8 +17,6 @@
 using std::array;
 using std::cout;
 using std::endl;
-using std::sort;
-using std::to_underlying;
 using std::vector;
 using namespace constants;
 
@@ -31,6 +24,9 @@ using namespace constants;
 ******************************************************************************/
 void PlayerAI::player_act(GameState& gs)
 {
+    /**
+     * Select the appropriate act method based on the player's AI type.
+    */
     switch (ai)
     {
     case AI_Type::Random:
@@ -44,6 +40,12 @@ void PlayerAI::player_act(GameState& gs)
 
 void PlayerAI::random_act(GameState& gs)
 {
+    /**
+     * Player AI randomly chooses from the list of legal actions.
+     *
+     * @param gs is the current game state.
+     * @return Modifies the game state with the chosen action and bet amount.
+    */
     set_int_dist(static_cast<int>(gs.legal_actions.size() - 1));
     int action_idx = uni_dist(rng);
     Action random_action = gs.legal_actions[action_idx];
@@ -92,15 +94,29 @@ void PlayerAI::random_act(GameState& gs)
 
 bool PlayerAI::legal_act(Action act, GameState& gs)
 {
+    /**
+     * Determine if action is legal.
+     *
+     * @param act is the action to search for.
+     * @param gs is the current game state containing the legal actions vector.
+     * @return True if the action exists inside the vector of legal actions.
+    */
     return std::find(gs.legal_actions.begin(), gs.legal_actions.end(), act)
         != gs.legal_actions.end();
 }
 
 void PlayerAI::set_int_dist(int max)
 {
+    /**
+     * Set the new maximum value of a uniform distribution of integers.
+     *
+     * @param max is the maximum integer value of the uniform distribution.
+     * @return Replace the data member with a new uniform distribution.
+    */
     if (max != dist_max)
     {
         uni_dist = std::uniform_int_distribution<>(0, max);
+        dist_max = max;
     }
 }
 
@@ -108,12 +124,18 @@ void PlayerAI::set_int_dist(int max)
 ******************************************************************************/
 void Player::eliminate_player()
 {
+    /**
+     * Eliminate player from the poker tournament.
+    */
     m_eliminated = true;
     m_active = false;
 }
 
 void Player::fold_player()
 {
+    /**
+     * Folder player's hand.
+    */
     m_active = false;
 }
 
@@ -160,9 +182,10 @@ unsigned Player::pay_blind(unsigned chips)
 
 void Player::player_act(GameState& gs)
 {
+    /**
+     * Call player's AI to determine player action.
+    */
     m_ai.player_act(gs);
-    assert(PlayerAI::legal_act(gs.player_action, gs) &&
-        "Invalid player action!");
     m_push_chips_to_pot(gs.player_bet);
     prev_action = gs.player_action;
 }
@@ -179,6 +202,9 @@ bool Player::is_player_active() const
 
 void Player::receive_card(const Card& c)
 {
+    /**
+     * Receive hole card from dealer.
+    */
     m_hand.add_card(c);
 }
 
@@ -202,9 +228,18 @@ void Player::win_chips(unsigned chips)
     m_chip_count += chips;
 }
 
-/* Private Player Method Definitions */
+/* Private Player Method Definitions
+************************************/
 unsigned Player::m_push_chips_to_pot(unsigned chips)
 {
+    /**
+     * Push player's bet to the pot.
+     *
+     * @param chips is the amount of chips the player bet (or blind amount).
+     * @return The amount of chips actually pushed to the pot, which could be
+     *         less than the parameter chips if the player's stack is
+     *         insufficient.
+    */
     if (m_chip_count >= chips)
     {
         m_chip_count -= chips;
