@@ -5,10 +5,12 @@
 /* Headers
 ******************************************************************************/
 // C++ standard library
-#include <algorithm> // For sort()
+#include <algorithm>    // For sort()
 #include <cassert>
-#include <functional> // For std::greater
+#include <filesystem>   // for create_directory()
+#include <functional>   // For std::greater
 #include <iostream>
+#include <string>
 #include <vector>
 // Project headers
 #include "cards.hpp"
@@ -22,6 +24,7 @@
 using std::cout;
 using std::endl;
 using std::sort;
+using std::string;
 using std::vector;
 using namespace constants;
 
@@ -392,7 +395,11 @@ void TexasHoldEm::m_end_game(GameState gs)
         int winner_idx = gs.showdown_players[0].player_idx;
         tourn_hist.finishing_order.push_back(winner_idx);
         tourn_hist.game_eliminated.push_back(game_hist.game_number);
-        write_tournamenthistory("test_game.bin", tourn_hist);
+        std::filesystem::create_directory("recorded_games/" + get_date());
+        filename = "recorded_games/" + get_date() +
+            "/tourn_" + std::to_string(tournament_number) + "__" +
+            create_timestamp() + ".bin";
+        write_tournamenthistory(filename, tourn_hist);
         cout << "Write tournament history successful!" << endl;
         return;
     }
@@ -1064,7 +1071,7 @@ void TexasHoldEm::m_load_script(GameState gs)
      * Load scripted scenario and then begin a single test game.
     */
     PlayerScript& script = m_test_case.player_script;
-    dealer.stack_the_deck(script.cards);
+    dealer.stack_the_deck(script.test_cards);
     // Load scenario chip counts into game state
     gs.player_chip_counts = script.player_chip_counts;
     // Load scripts into scripted AI and update player chip counts

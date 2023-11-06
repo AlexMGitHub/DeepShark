@@ -1,5 +1,5 @@
 ###############################################################################
-#	Test Cards.cpp Makefile			         						          #
+#	test_cards.cpp Makefile			         						          #
 #																	          #
 #	Project:	DeepShark        										      #
 #	Date:		09/10/2023											          #

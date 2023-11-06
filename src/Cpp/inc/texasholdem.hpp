@@ -58,6 +58,7 @@ public:
     Dealer dealer;
     const int tournament_number;
     bool debug;
+    std::string filename;
     // Member Functions
     void begin_tournament();
     void begin_test_game(TestCase tc);

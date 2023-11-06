@@ -150,7 +150,18 @@ class RunTournaments
 
 struct PlayerScript
 {
-    std::vector<Card> cards;
+    // Constructors
+    PlayerScript() {}
+    PlayerScript(
+        std::vector<Card> test_cards,
+        std::vector<unsigned> player_chip_counts,
+        std::vector<std::vector<std::pair<constants::Action, unsigned>>>
+        scripted_actions) :
+        test_cards(test_cards),
+        player_chip_counts(player_chip_counts),
+        scripted_actions(scripted_actions) {}
+    // Data Members
+    std::vector<Card> test_cards;
     std::vector<unsigned> player_chip_counts;
     std::vector<
         std::vector<
@@ -160,6 +171,15 @@ struct PlayerScript
 
 struct TestCase
 {
+    // Constructors
+    TestCase() {}
+    TestCase(
+        std::string test_desc,
+        PlayerScript player_script,
+        GameState ground_truth) :
+        test_desc(test_desc),
+        player_script(player_script),
+        ground_truth(ground_truth) {}
     // Data Members
     std::string test_desc;
     PlayerScript player_script;

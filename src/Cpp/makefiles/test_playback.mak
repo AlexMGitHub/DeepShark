@@ -1,13 +1,13 @@
 ###############################################################################
-#	test_the.cpp Makefile			         						          #
+#	test_playback.cpp Makefile			         						      #
 #																	          #
 #	Project:	DeepShark        										      #
-#	Date:		09/10/2023											          #
+#	Date:		11/06/2023											          #
 #																	          #
 ###############################################################################
 
 ## Binary filename
-BINFILE = test_the
+BINFILE = test_playback
 
 ## Compiler
 CC=g++						# GNU C++ Compiler
@@ -23,7 +23,6 @@ TESTDIR = ../tests/functional
 
 ## Compiler flags
 CPPFLAGS = -I$(INCDIR)		# Look in inc directory for header files
-CPPFLAGS += -I$(TESTINCDIR)	# Look in tests/inc directory for header files
 #CPPFLAGS += -fpic			# Generate position independent code (for shared lib)
 CPPFLAGS += -Wall			# Enables warnings for all questionable constructions
 CPPFLAGS += -Wextra			# Enables additional warnings
@@ -36,13 +35,12 @@ CPPFLAGS += -std=c++23		# Enable support for ISO C++23 standard
 
 ## Define source, dependencies (headers), and object files
 ## Then append directory to the filenames
-TEST = $(TESTDIR)/test_the.cpp
+TEST = $(TESTDIR)/test_playback.cpp
 SRC = $(wildcard $(SRCDIR)/*.cpp)
 OBJ := $(addprefix $(OBJDIR)/, $(notdir $(SRC)))
 OBJ += $(addprefix $(OBJDIR)/, $(notdir $(TEST)))
 OBJ := $(OBJ:.cpp=.o)
 DEPS = $(wildcard $(INCDIR)/*.hpp)
-DEPS += $(TESTINCDIR)/test_the.hpp
 
 #SRC = $(wildcard $(SRCDIR)/*.cpp)
 #OBJ = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))

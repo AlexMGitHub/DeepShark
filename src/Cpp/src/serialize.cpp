@@ -5,8 +5,12 @@
 /* Headers
 ******************************************************************************/
 // C++ standard library
+#include <algorithm>    // For std::replace()
+#include <chrono>       // For timestamp() function
 #include <fstream>
 #include <iostream>
+#include <iomanip>      // For put_time() in timestamp() function
+#include <sstream>      // stringstream in timestamp() function
 #include <string>
 #include <vector>
 // Project headers
@@ -17,6 +21,7 @@
 // Using statements
 using std::cout;
 using std::endl;
+using std::replace;
 using std::sort;
 using std::string;
 using std::to_underlying;
@@ -333,4 +338,24 @@ void write_tournamenthistory(string filename, TournamentHistory& th)
         }
     }
     fs.close();
+}
+
+std::string create_timestamp()
+{
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream datetime;
+    datetime << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d__%X");
+    std::string s = datetime.str();
+    replace(s.begin(), s.end(), ':', '-');  // Replace all colons with hypens
+    return s;
+}
+
+std::string get_date()
+{
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream datestamp;
+    datestamp << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d");
+    return datestamp.str();
 }
