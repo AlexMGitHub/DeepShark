@@ -66,6 +66,7 @@ public:
     void deal_flop(std::vector<Player>& player_list);
     void deal_turn(std::vector<Player>& player_list);
     void deal_river(std::vector<Player>& player_list);
+    void stack_the_deck(std::vector<Card> cards);
 private:
     // Data Members
     Deck m_deck;

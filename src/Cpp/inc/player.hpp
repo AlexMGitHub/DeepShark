@@ -8,7 +8,9 @@
 ******************************************************************************/
 // C++ standard library
 #include <array>
-#include <random> // For mt19937 and normal distribution
+#include <memory>   // For shared_ptr
+#include <random>   // For mt19937 and normal distribution
+#include <utility>  // For std::pair
 #include <vector>
 // Project headers
 #include "cards.hpp"
@@ -17,6 +19,7 @@
 /* Forward Declarations
 ******************************************************************************/
 struct GameState;
+class TexasHoldEm;
 
 /* Declarations
 ******************************************************************************/
@@ -24,19 +27,45 @@ class PlayerAI
 {
 public:
     // Constructors
-    PlayerAI(constants::AI_Type ai, std::mt19937& rng) : ai(ai), rng(rng) {}
+    PlayerAI(std::mt19937& rng) : rng(rng) {}
     // Data Members
-    const constants::AI_Type ai;
     std::mt19937& rng;
-    std::uniform_int_distribution<> uni_dist;
     // Member Functions
-    void player_act(GameState& gs);
+    virtual void player_act(GameState& gs) = 0;
     static bool legal_act(constants::Action act, GameState& gs);
-private:
+};
+
+class RandomAI : public PlayerAI
+{
+public:
+    // Constructors
+    RandomAI(std::mt19937& rng) : PlayerAI(rng) {}
+    // Data Members
+    const constants::AI_Type ai = constants::AI_Type::Random;
     // Member Functions
-    void random_act(GameState& gs);
-    void set_int_dist(int max);
-    int dist_max;
+    void player_act(GameState& gs) override;
+private:
+    // Data Members
+    int m_distribution_max;
+    std::uniform_int_distribution<> m_uniform_dist;
+    // Member Functions
+    void m_set_distribution_max(int max);
+};
+
+class ScriptedAI : public PlayerAI
+{
+public:
+    // Constructors
+    ScriptedAI(std::mt19937& rng) : PlayerAI(rng) {}
+    // Data Members
+    const constants::AI_Type ai = constants::AI_Type::Scripted;
+    std::vector<std::pair<constants::Action, unsigned>> scripted_actions;
+    // Member Functions
+    void player_act(GameState& gs) override;
+    void accept_script(std::vector<std::pair<constants::Action, unsigned>> script);
+private:
+    // Data Members
+    int m_action_number = 0;
 };
 
 class Player
@@ -46,8 +75,10 @@ public:
     Player(int idx, unsigned chips, constants::AI_Type ai, std::mt19937& rng) :
         player_idx(idx),
         ai_type(ai),
-        m_ai(ai, rng),
-        m_chip_count(chips) {}
+        m_chip_count(chips)
+    {
+        m_select_ai(rng);
+    }
     // Data Members
     const int player_idx;
     constants::AI_Type ai_type;
@@ -72,13 +103,17 @@ public:
     void set_player_active();
     void update_blind_status(constants::Blind b);
     void win_chips(unsigned chips);
+    void pass_script(std::vector<std::pair<constants::Action, unsigned>> script);
 private:
+    // Friends
+    friend TexasHoldEm;
     // Data Members
-    PlayerAI m_ai;
+    std::shared_ptr<PlayerAI> m_ai;
     Hand m_hand;
     bool m_active = true;
     bool m_eliminated = false;
     unsigned m_chip_count;
     // Member Functions
     unsigned m_push_chips_to_pot(unsigned chips);
+    void m_select_ai(std::mt19937& rng);
 };

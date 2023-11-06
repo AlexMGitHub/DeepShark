@@ -13,6 +13,7 @@
 #include <vector>
 // Project headers
 #include "cards.hpp"
+#include "constants.hpp"
 // Using statements
 using std::array;
 using std::cout;
@@ -21,6 +22,7 @@ using std::sort;
 using std::span;
 using std::to_underlying;
 using std::vector;
+using namespace constants;
 
 /* Hand Class Tests
 ******************************************************************************/

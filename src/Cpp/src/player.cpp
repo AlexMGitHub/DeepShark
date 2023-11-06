@@ -8,37 +8,40 @@
 #include <array>
 #include <cassert>
 #include <iostream>
-#include <random> // For shuffle(), uniform_int_distribution<>
+#include <memory>   // For static_pointer_cast
+#include <random>   // For shuffle(), uniform_int_distribution<>
 // Project headers
 #include "player.hpp"
 #include "constants.hpp"
 #include "storage.hpp"
+#include "utility"  // For std::pair
 // Using statements
 using std::array;
 using std::cout;
 using std::endl;
+using std::pair;
+using std::static_pointer_cast;
 using std::vector;
 using namespace constants;
 
 /* PlayerAI Method Definitions
 ******************************************************************************/
-void PlayerAI::player_act(GameState& gs)
+bool PlayerAI::legal_act(Action act, GameState& gs)
 {
     /**
-     * Select the appropriate act method based on the player's AI type.
+     * Determine if action is legal.
+     *
+     * @param act is the action to search for.
+     * @param gs is the current game state containing the legal actions vector.
+     * @return True if the action exists inside the vector of legal actions.
     */
-    switch (ai)
-    {
-    case AI_Type::Random:
-        return random_act(gs);
-        break;
-    default:
-        cout << "Invalid player AI!" << endl;
-        exit(-1);
-    }
+    return std::find(gs.legal_actions.begin(), gs.legal_actions.end(), act)
+        != gs.legal_actions.end();
 }
 
-void PlayerAI::random_act(GameState& gs)
+/* RandomAI Method Definitions
+******************************************************************************/
+void RandomAI::player_act(GameState& gs)
 {
     /**
      * Player AI randomly chooses from the list of legal actions.
@@ -46,8 +49,8 @@ void PlayerAI::random_act(GameState& gs)
      * @param gs is the current game state.
      * @return Modifies the game state with the chosen action and bet amount.
     */
-    set_int_dist(static_cast<int>(gs.legal_actions.size() - 1));
-    int action_idx = uni_dist(rng);
+    m_set_distribution_max(static_cast<int>(gs.legal_actions.size() - 1));
+    int action_idx = m_uniform_dist(rng);
     Action random_action = gs.legal_actions[action_idx];
     if (random_action == Action::Fold ||
         random_action == Action::Check)
@@ -73,8 +76,8 @@ void PlayerAI::random_act(GameState& gs)
         random_action == Action::Re_Raise)
     {
         gs.player_action = random_action;
-        set_int_dist(gs.max_bet);
-        unsigned random_bet = static_cast<unsigned>(uni_dist(rng));
+        m_set_distribution_max(gs.max_bet);
+        unsigned random_bet = static_cast<unsigned>(m_uniform_dist(rng));
         if (random_bet < (gs.min_to_raise + gs.chips_to_call))
         {
             gs.player_bet = gs.min_to_raise + gs.chips_to_call;
@@ -92,20 +95,7 @@ void PlayerAI::random_act(GameState& gs)
     }
 }
 
-bool PlayerAI::legal_act(Action act, GameState& gs)
-{
-    /**
-     * Determine if action is legal.
-     *
-     * @param act is the action to search for.
-     * @param gs is the current game state containing the legal actions vector.
-     * @return True if the action exists inside the vector of legal actions.
-    */
-    return std::find(gs.legal_actions.begin(), gs.legal_actions.end(), act)
-        != gs.legal_actions.end();
-}
-
-void PlayerAI::set_int_dist(int max)
+void RandomAI::m_set_distribution_max(int max)
 {
     /**
      * Set the new maximum value of a uniform distribution of integers.
@@ -113,11 +103,26 @@ void PlayerAI::set_int_dist(int max)
      * @param max is the maximum integer value of the uniform distribution.
      * @return Replace the data member with a new uniform distribution.
     */
-    if (max != dist_max)
+    if (max != m_distribution_max)
     {
-        uni_dist = std::uniform_int_distribution<>(0, max);
-        dist_max = max;
+        m_uniform_dist = std::uniform_int_distribution<>(0, max);
+        m_distribution_max = max;
     }
+}
+
+/* ScriptedAI Method Definitions
+******************************************************************************/
+void ScriptedAI::player_act(GameState& gs)
+{
+    /**
+     * AI performs scripted actions to test a particular scenario.
+     *
+     * @param gs is the current game state.
+     * @return Modifies the game state with the chosen action and bet amount.
+    */
+    gs.player_action = scripted_actions[m_action_number].first;
+    gs.player_bet = scripted_actions[m_action_number].second;
+    m_action_number++;
 }
 
 /* Player Method Definitions
@@ -185,7 +190,7 @@ void Player::player_act(GameState& gs)
     /**
      * Call player's AI to determine player action.
     */
-    m_ai.player_act(gs);
+    m_ai->player_act(gs);
     m_push_chips_to_pot(gs.player_bet);
     prev_action = gs.player_action;
 }
@@ -228,6 +233,11 @@ void Player::win_chips(unsigned chips)
     m_chip_count += chips;
 }
 
+void Player::pass_script(vector<pair<Action, unsigned>> script)
+{
+    static_pointer_cast<ScriptedAI>(m_ai)->scripted_actions = script;
+}
+
 /* Private Player Method Definitions
 ************************************/
 unsigned Player::m_push_chips_to_pot(unsigned chips)
@@ -248,4 +258,23 @@ unsigned Player::m_push_chips_to_pot(unsigned chips)
     unsigned temp = m_chip_count;
     m_chip_count = 0;
     return temp;
+}
+
+void Player::m_select_ai(std::mt19937& rng)
+{
+    /**
+     * Select the appropriate act method based on the player's AI type.
+    */
+    switch (ai_type)
+    {
+    case AI_Type::Random:
+        m_ai = make_unique<RandomAI>(rng);
+        break;
+    case AI_Type::Scripted:
+        m_ai = make_unique<ScriptedAI>(rng);
+        break;
+    default:
+        cout << "Invalid player AI!" << endl;
+        exit(-1);
+    }
 }

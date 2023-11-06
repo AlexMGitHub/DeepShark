@@ -45,6 +45,7 @@ public:
     Card deal_one_card();
     void print_cards();
     void shuffle_deck();
+    void stack_the_deck(std::vector<Card> cards);
 private:
     // Data Members
     int m_top_card_idx = 0;

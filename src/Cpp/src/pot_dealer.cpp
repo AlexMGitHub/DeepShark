@@ -231,3 +231,11 @@ void Dealer::deal_river(vector<Player>& player_list)
         }
     }
 }
+
+void Dealer::stack_the_deck(vector<Card> cards)
+{
+    /**
+     * Replace cards in deck with cards chosen for use in a test scenario.
+    */
+    m_deck.stack_the_deck(cards);
+}

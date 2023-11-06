@@ -6,6 +6,8 @@
 ******************************************************************************/
 // C++ standard library
 #include <array>
+#include <iostream>
+#include <string>
 #include <vector>
 // Project headers
 #include "cards.hpp"
@@ -15,6 +17,10 @@
 #include "texasholdem.hpp"
 // Using statements
 using std::array;
+using std::cout;
+using std::endl;
+using std::string;
+using std::to_string;
 using std::vector;
 using namespace constants;
 
@@ -277,4 +283,59 @@ bool ShowdownStruct::operator==(const ShowdownStruct& other)
         }
     }
     return true;
+}
+
+/* TestCase Method Definitions
+******************************************************************************/
+void TestCase::validate_results(GameState& gs)
+{
+    string tab = "    ";
+    string ttab = tab + tab;
+    string dash = tab + "- ";
+    string pass = tab + tab + "PASS";
+    cout << endl << test_desc << endl;
+    cout << dash << "test number remaining players..................";
+    assert((gs.num_players == ground_truth.num_players) &&
+        "Remaining players (num_players) do not match!");
+    cout << ttab + "PASS" << endl;
+
+    cout << dash << "test player chip counts........................";
+    for (int i = 0; i < gs.initial_num_players; i++)
+    {
+        assert((gs.num_players == ground_truth.num_players) &&
+            "Player chip counts do not match!");
+    }
+    cout << ttab + "PASS" << endl;
+
+    cout << dash << "test number showdown players...................";
+    assert((gs.num_showdown_players == ground_truth.num_showdown_players) &&
+        "Number of showdown players do not match!");
+    cout << ttab + "PASS" << endl;
+
+    for (size_t i = 0; i < gs.num_showdown_players; i++)
+    {
+        cout << dash << "test showdown player " + to_string(i) + "..." << endl;
+        cout << tab + dash << "test showdown player order.................";
+        assert((gs.showdown_players[i].player_idx ==
+            ground_truth.showdown_players[i].player_idx) &&
+            "Showdown player order does not match!");
+        cout << ttab + "PASS" << endl;
+
+        cout << tab + dash << "test showdown hand rank and best hand......";
+        assert((gs.showdown_players[i] == ground_truth.showdown_players[i]) &&
+            "Showdown hand rank and best hand do not match!");
+        cout << ttab + "PASS" << endl;
+
+        cout << tab + dash << "test showdown player total chips bet.......";
+        assert((gs.showdown_players[i].total_chips_bet ==
+            ground_truth.showdown_players[i].total_chips_bet) &&
+            "Showdown player total chips bet do not match!");
+        cout << ttab + "PASS" << endl;
+
+        cout << tab + dash << "test showdown player chips won.............";
+        assert((gs.showdown_players[i].total_chips_bet ==
+            ground_truth.showdown_players[i].total_chips_bet) &&
+            "Showdown player chips won do not match!");
+        cout << ttab + "PASS" << endl;
+    }
 }

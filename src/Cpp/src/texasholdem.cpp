@@ -41,7 +41,12 @@ void TexasHoldEm::begin_tournament()
     // Initialize players
     for (int i = 0; i < initial_num_players; i++)
     {
-        full_player_list.push_back(Player(i, MAX_BUY_IN, AI_Type::Random, rng));
+        full_player_list.push_back(
+            Player(
+                i,
+                MAX_BUY_IN,
+                player_ai_types[i],
+                rng));
     }
     // Initalize data storage structures
     tourn_hist.games.clear();
@@ -61,9 +66,34 @@ void TexasHoldEm::begin_tournament()
         gs.ai_types.push_back(full_player_list[i].ai_type);
         gs.remaining_players.push_back(true);
     }
-    m_begin_game(gs);
+    if (m_test_game)
+    {
+        m_load_script(gs);
+    }
+    else
+    {
+        m_begin_game(gs);
+    }
 }
 
+void TexasHoldEm::begin_test_game(TestCase tc)
+{
+    /**
+     * Execute a single test game that plays out a scripted scenario.
+    */
+    for (const auto& ai : player_ai_types)
+    {
+        assert((ai == AI_Type::Scripted) && "All AI types must be scripted!");
+    }
+    m_test_game = true;
+    m_test_case = tc;
+    begin_tournament();
+    m_test_game = false;
+    m_tournament_started = false;
+}
+
+/* Private Texas Hold 'Em Method Definitions
+********************************************/
 void TexasHoldEm::m_begin_game(GameState gs)
 {
     /**
@@ -102,7 +132,6 @@ void TexasHoldEm::m_begin_game(GameState gs)
         full_player_list[m_button_idx].blind = Blind::Dealer_Button_and_Small_Blind;
         full_player_list[m_bb_idx].blind = Blind::Big_Blind;
     }
-
     // Collect blinds
     unsigned sb = BLINDS_STRUCTURE.at(num_players).first;
     unsigned bb = BLINDS_STRUCTURE.at(num_players).second;
@@ -128,13 +157,17 @@ void TexasHoldEm::m_begin_game(GameState gs)
         gs.raise_player_idx = m_bb_idx;
     }
     // Deal cards to players
-    dealer.shuffle_deck();
+    if (!m_test_game)
+    {
+        dealer.shuffle_deck();  // Don't disrupt order of cards if test game
+    }
     dealer.deal_to_players(full_player_list, num_players, m_button_idx);
     gs.blinds.clear();
     gs.last_actions.clear();
     gs.hole_cards.clear();
     gs.best_hands.clear();
     gs.hand_ranks.clear();
+    gs.player_idx = 0;  // Ensure player index is initialized to a valid value
     for (int i = 0; i < initial_num_players; i++)
     {
         gs.blinds.push_back(full_player_list[i].blind);
@@ -322,7 +355,7 @@ void TexasHoldEm::m_end_game(GameState gs)
      *
     */
     gs.round = Round::Game_Result;
-    determine_game_winner(gs);
+    m_determine_game_winner(gs);
     // Check if players eliminated, and verify the total number of chips in the
     // tournament hasn't changed.
     unsigned total_chips = 0;
@@ -371,15 +404,23 @@ void TexasHoldEm::m_end_game(GameState gs)
     dealer.clear_cards_from_table();
     // Move blinds, increment game count, clear game history, and start
     // next game
-    m_move_blinds();
-    game_hist.game_number++;
-    game_hist.states.clear();
-    gs.num_showdown_players = 0;
-    gs.showdown_players.clear();
-    m_begin_game(gs);
+    if (m_test_game)
+    {
+        m_validate_test_results(gs);
+    }
+    else
+    {
+        m_move_blinds();
+        game_hist.game_number++;
+        game_hist.states.clear();
+        gs.num_showdown_players = 0;
+        gs.showdown_players.clear();
+        m_begin_game(gs);
+    }
+
 }
 
-void TexasHoldEm::determine_game_winner(GameState& gs)
+void TexasHoldEm::m_determine_game_winner(GameState& gs)
 {
     /**
      * Determine the winner of the game and distribute the winnings.
@@ -539,10 +580,10 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
             full_player_list[plyr_idx].is_player_active() &&
             (full_player_list[plyr_idx].get_chip_count() > 0))
         {
-            determine_legal_actions(gs, plyr_idx);
+            m_determine_legal_actions(gs, plyr_idx);
             m_update_game_state(gs);
             full_player_list[plyr_idx].player_act(gs);
-            validate_player_action(gs, plyr_idx);
+            m_validate_player_action(gs, plyr_idx);
             // Store game state
             game_hist.states.push_back(gs);
             if (debug) { print_state(gs); }
@@ -553,7 +594,7 @@ void TexasHoldEm::m_betting_loop(GameState& gs, int starting_plyr)
     }
 }
 
-void TexasHoldEm::determine_legal_actions(GameState& gs, int plyr_idx)
+void TexasHoldEm::m_determine_legal_actions(GameState& gs, int plyr_idx)
 {
     /**
      * Determine what actions and betting amounts are legal for the player.
@@ -634,7 +675,7 @@ void TexasHoldEm::determine_legal_actions(GameState& gs, int plyr_idx)
     }
 }
 
-void TexasHoldEm::validate_player_action(GameState& gs, int plyr_idx)
+void TexasHoldEm::m_validate_player_action(GameState& gs, int plyr_idx)
 {
     /**
      * Validate that the player's action and bet complies with the rules.
@@ -644,6 +685,8 @@ void TexasHoldEm::validate_player_action(GameState& gs, int plyr_idx)
     */
     assert(PlayerAI::legal_act(gs.player_action, gs) &&
         "Invalid player action!");
+    assert((gs.player_bet <= gs.max_bet) &&
+        "Player cannot bet more than their stack!");
     if ((gs.player_bet == gs.max_bet) &&
         (gs.player_bet != gs.chips_to_call) &&
         (gs.player_bet < (gs.chips_to_call + gs.min_to_raise)))
@@ -1013,4 +1056,30 @@ vector<unsigned> TexasHoldEm::m_get_player_chip_counts() const
         chip_counts.push_back(player.get_chip_count());
     }
     return chip_counts;
+}
+
+void TexasHoldEm::m_load_script(GameState gs)
+{
+    /**
+     * Load scripted scenario and then begin a single test game.
+    */
+    PlayerScript& script = m_test_case.player_script;
+    dealer.stack_the_deck(script.cards);
+    // Load scenario chip counts into game state
+    gs.player_chip_counts = script.player_chip_counts;
+    // Load scripts into scripted AI and update player chip counts
+    for (size_t i = 0; i < gs.player_chip_counts.size(); i++)
+    {
+        full_player_list[i].m_chip_count = gs.player_chip_counts[i];
+        full_player_list[i].pass_script(script.scripted_actions[i]);
+    }
+    m_begin_game(gs);
+}
+
+void TexasHoldEm::m_validate_test_results(GameState gs)
+{
+    /**
+     * Compare the final game state to the expected test results.
+    */
+    m_test_case.validate_results(gs);
 }

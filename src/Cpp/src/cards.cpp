@@ -119,6 +119,19 @@ void Deck::shuffle_deck()
     m_top_card_idx = 0;
 }
 
+void Deck::stack_the_deck(vector<Card> cards)
+{
+    /**
+     * Replace top cards of deck with supplied vector of cards.
+     *
+     * Used to play out a specified test scenario.
+    */
+    for (size_t i = 0; i < cards.size(); i++)
+    {
+        m_cards[i] = cards[i];
+    }
+}
+
 /* Hand Method Definitions
 ******************************************************************************/
 

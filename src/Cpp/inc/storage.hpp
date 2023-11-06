@@ -148,3 +148,23 @@ class RunTournaments
     // Methods to run tournaments in parallel
 };
 
+struct PlayerScript
+{
+    std::vector<Card> cards;
+    std::vector<unsigned> player_chip_counts;
+    std::vector<
+        std::vector<
+        std::pair<constants::Action, unsigned>>
+        > scripted_actions;
+};
+
+struct TestCase
+{
+    // Data Members
+    std::string test_desc;
+    PlayerScript player_script;
+    GameState ground_truth;
+    // Member Functions
+    void validate_results(GameState& gs);
+};
+

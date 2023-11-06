@@ -162,6 +162,7 @@ namespace constants
 
     enum class AI_Type : int
     {
-        Random
+        Random,
+        Scripted
     };
 }

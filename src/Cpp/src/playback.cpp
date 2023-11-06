@@ -189,8 +189,11 @@ string to_string(const constants::AI_Type& ai)
     case AI_Type::Random:
         return "Random";
         break;
+    case AI_Type::Scripted:
+        return "Scripted";
+        break;
     default:
-        cout << "Invalid AI type!" << endl;
+        cout << "Invalid AI type for string conversion!" << endl;
         exit(-1);
     }
 }
