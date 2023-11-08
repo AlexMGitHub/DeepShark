@@ -506,6 +506,11 @@ bool Hand::m_is_straight(std::vector<Card> hand)
                 straight_hand.push_back(j);
                 consecutive_cards++;
             }
+            else if (to_underlying(j.rank) == current_card + consecutive_cards - 1)
+            {
+                // Next card is a card of the same rank as the previous card
+                // A straight is still possible, keep iterating through hand
+            }
             else
             {
                 straight_hand.clear();

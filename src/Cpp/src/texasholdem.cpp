@@ -480,6 +480,7 @@ void TexasHoldEm::m_determine_game_winner(GameState& gs)
         int winner_idx = 0;
         unsigned smallest_bet;
         unsigned winnings;
+        unsigned prev_winner_bets = 0;
         unsigned remainder;
         unsigned split_winnings;
         int closest_plyr;
@@ -505,7 +506,8 @@ void TexasHoldEm::m_determine_game_winner(GameState& gs)
             if (tie_count > 1)
             {
                 // There's been a tie, and so we must split the pot or side pot
-                for (int i = winner_idx; i < tie_count; i++)
+                int tied_players = winner_idx + tie_count;
+                for (int i = winner_idx; i < tied_players; i++)
                 {
                     if ((i > winner_idx) &&
                         (gs.showdown_players[i].total_chips_bet ==
@@ -513,16 +515,22 @@ void TexasHoldEm::m_determine_game_winner(GameState& gs)
                     {
                         // Tied winners bet same amount, so pot has already
                         // been split in the previous loop.
-                        break;
+                        continue;
+                    }
+                    else if (i > winner_idx)
+                    {
+                        tie_count--;  // Review this
                     }
                     // Showdown structs are sorted so that in case of a tie
                     // the player who bet the least amount is first in the vector
                     smallest_bet = gs.showdown_players[i].total_chips_bet;
+                    smallest_bet -= prev_winner_bets;  // Subtract previous side pots
+                    prev_winner_bets += smallest_bet;  // Keep track of side pot winnings
                     winnings = pot.m_pay_to_winner(smallest_bet);
-                    remainder = winnings % (tie_count - i);
-                    split_winnings = (winnings - remainder) / (tie_count - i);
+                    remainder = winnings % tie_count;
+                    split_winnings = (winnings - remainder) / tie_count;
                     // Determine player closest to left of dealer button
-                    for (int j = winner_idx; j < winner_idx + tie_count - i; j++)
+                    for (int j = i; j < i + tie_count; j++)
                     {
                         tie_player_indices.push_back(gs.showdown_players[j].player_idx);
                     }
@@ -531,24 +539,26 @@ void TexasHoldEm::m_determine_game_winner(GameState& gs)
                     // Pay each winner their equal portion of the pot or side pot
                     // Pay the odd chip(s) to the closest to the left of the dealer
                     int plyr_idx;
-                    full_player_list[closest_plyr].win_chips(remainder);
-                    for (int k = winner_idx; k < winner_idx + tie_count - i; k++)
+                    for (int k = i; k < i + tie_count; k++)
                     {
                         gs.showdown_players[k].chips_won += split_winnings;
                         plyr_idx = gs.showdown_players[k].player_idx;
                         full_player_list[plyr_idx].win_chips(split_winnings);
                         if (plyr_idx == closest_plyr)
                         {
+                            full_player_list[closest_plyr].win_chips(remainder);
                             gs.showdown_players[k].chips_won += remainder;
                         }
                     }
-                    winner_idx++;
                 }
+                winner_idx = tied_players;
             }
             else
             {
                 // No tie, so no need to split the pot
                 int bet = gs.showdown_players[winner_idx].total_chips_bet;
+                bet -= prev_winner_bets;  // Subtract previous side pots
+                prev_winner_bets += bet;  // Keep track of side pot winnings
                 int winner = gs.showdown_players[winner_idx].player_idx;
                 winnings = pot.m_pay_to_winner(bet);
                 full_player_list[winner].win_chips(winnings);
@@ -717,7 +727,7 @@ void TexasHoldEm::m_validate_player_action(GameState& gs, int plyr_idx)
             gs.min_bet = gs.player_bet + gs.sum_prev_bets;
         }
     }
-    else if (gs.player_bet > gs.min_bet)
+    else if (gs.player_bet > gs.chips_to_call)
     {
         // Player has raised
         assert((gs.player_bet >= (gs.chips_to_call + gs.min_to_raise))
@@ -729,7 +739,10 @@ void TexasHoldEm::m_validate_player_action(GameState& gs, int plyr_idx)
             "Action should be all-in/bet/raise/re-raise!");
         gs.min_to_raise = gs.player_bet - gs.chips_to_call;
         gs.min_bet = gs.player_bet + gs.sum_prev_bets;
-        gs.raise_active = true;
+        if (gs.player_action != Action::Bet)
+        {
+            gs.raise_active = true;
+        }
         gs.raise_player_idx = plyr_idx;
     }
     else if ((gs.player_bet == 0) && (gs.chips_to_call > 0))

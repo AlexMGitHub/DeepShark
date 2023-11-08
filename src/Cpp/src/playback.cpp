@@ -548,11 +548,14 @@ void print_console_output(const GameState& gs)
         gs.round != Round::Game_Result)
     {
         output = "- Player " + to_string(gs.player_idx);
-        if (gs.player_action == Action::Call
-            || gs.player_action == Action::Check
+        if (gs.player_action == Action::Check
             || gs.player_action == Action::Fold)
         {
             output += " " + to_string(gs.player_action) + "s.";
+        }
+        else if (gs.player_action == Action::Call)
+        {
+            output += " calls $" + to_string(gs.chips_to_call) + ".";
         }
         else if (gs.player_action == Action::All_In)
         {

@@ -42,7 +42,7 @@ OBJ := $(addprefix $(OBJDIR)/, $(notdir $(SRC)))
 OBJ += $(addprefix $(OBJDIR)/, $(notdir $(TEST)))
 OBJ := $(OBJ:.cpp=.o)
 DEPS = $(wildcard $(INCDIR)/*.hpp)
-DEPS += $(TESTINCDIR)/test_the.hpp
+TESTDEPS = $(TESTINCDIR)/test_the.hpp
 
 #SRC = $(wildcard $(SRCDIR)/*.cpp)
 #OBJ = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))
@@ -63,7 +63,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(CC) $(CPPFLAGS) -c $< -o $@
 
 ## Create objects from test code
-$(OBJDIR)/%.o: $(TESTDIR)/%.cpp $(DEPS)
+$(OBJDIR)/%.o: $(TESTDIR)/%.cpp $(TESTDEPS)
 	$(CC) $(CPPFLAGS) -c $< -o $@
 
 ## Create executable
