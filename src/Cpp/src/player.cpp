@@ -125,6 +125,69 @@ void ScriptedAI::player_act(GameState& gs)
     m_action_number++;
 }
 
+/* CheckCallAI Method Definitions
+******************************************************************************/
+void CheckCallAI::player_act(GameState& gs)
+{
+    /**
+     * AI checks if possible, otherwise calls.
+     *
+     * Used for Monte Carlo simulations.
+     *
+     * @param gs is the current game state.
+     * @return Modifies the game state with the chosen action and bet amount.
+    */
+    if (legal_act(Action::Check, gs))
+    {
+        gs.player_action = Action::Check;
+        gs.player_bet = 0;
+    }
+    else
+    {
+        gs.player_action = Action::Call;
+        gs.player_bet = gs.chips_to_call;
+    }
+}
+
+/* PersonalityAI Method Definitions
+******************************************************************************/
+// void PersonalityAI::assess_confidence(GameState& gs)
+// {
+//     /**
+//      *
+//     */
+//     if (gs.round == Round::Pre_Flop)
+//     {
+
+//     }
+//     else
+//     {
+
+//     }
+// }
+
+// double PersonalityAI::assess_hand(GameState& gs)
+// {
+//     /**
+//      * Assess the strength of a poker hand.
+//      *
+//      * Uses a probability table to determine what percentage of all possible
+//      * poker hands the current best hand will beat.
+//      *
+//      * @param gs is the current game state.
+//      * @return a percentage between 0 and 1.
+//     */
+//     if (gs.round == Round::Pre_Flop)
+//     {
+
+//     }
+//     else
+//     {
+
+//     }
+// }
+
+
 /* Player Method Definitions
 ******************************************************************************/
 void Player::eliminate_player()
@@ -268,10 +331,13 @@ void Player::m_select_ai(std::mt19937& rng)
     switch (ai_type)
     {
     case AI_Type::Random:
-        m_ai = make_unique<RandomAI>(rng);
+        m_ai = make_shared<RandomAI>(rng);
         break;
     case AI_Type::Scripted:
-        m_ai = make_unique<ScriptedAI>(rng);
+        m_ai = make_shared<ScriptedAI>(rng);
+        break;
+    case AI_Type::CheckCall:
+        m_ai = make_shared<CheckCallAI>(rng);
         break;
     default:
         cout << "Invalid player AI!" << endl;

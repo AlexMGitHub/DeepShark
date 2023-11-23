@@ -192,6 +192,56 @@ void test_full_house()
     hand_assert(cards5, correct_hand, correct_hand_rank);
 }
 
+void test_full_house2()
+{
+    cout << endl << "- test_full_house2..." << endl;
+    // Test Fixtures
+    std::array<Card, 7> cards{
+        Card(Suit::Spade, Rank::Five),
+        Card(Suit::Heart, Rank::Six),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Spade, Rank::King),
+        Card(Suit::Club, Rank::King),
+        Card(Suit::Club, Rank::Six),
+        Card(Suit::Diamond, Rank::Six)
+    };
+    span<Card> cards7(cards.begin(), cards.end());
+    span<Card> cards6(cards.begin(), cards.end() - 1);
+    span<Card> cards5(cards.begin(), cards.end() - 2);
+    array<Card, 5> correct_hand7{
+        Card(Suit::Heart, Rank::Six),
+        Card(Suit::Club, Rank::Six),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Spade, Rank::King),
+        Card(Suit::Club, Rank::King)
+    };
+    array<Card, 5> correct_hand6{
+        Card(Suit::Heart, Rank::Six),
+        Card(Suit::Club, Rank::Six),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Spade, Rank::King),
+        Card(Suit::Club, Rank::King),
+    };
+    array<Card, 5> correct_hand5{
+        Card(Suit::Spade, Rank::Five),
+        Card(Suit::Heart, Rank::Six),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Spade, Rank::King),
+        Card(Suit::Club, Rank::King),
+    };
+
+    HandRank correct_hand_rank7 = HandRank::Full_House;
+    HandRank correct_hand_rank6 = HandRank::Full_House;
+    HandRank correct_hand_rank5 = HandRank::Three_of_a_Kind;
+    // Execute tests
+    cout << "\t- " << "test 7 cards...";
+    hand_assert(cards7, correct_hand7, correct_hand_rank7);
+    cout << "\t- " << "test 6 cards...";
+    hand_assert(cards6, correct_hand6, correct_hand_rank6);
+    cout << "\t- " << "test 5 cards...";
+    hand_assert(cards5, correct_hand5, correct_hand_rank5);
+}
+
 void test_flush()
 {
     cout << endl << "- test_flush..." << endl;
@@ -516,6 +566,7 @@ int main()
     test_straight_flush();
     test_four_of_a_kind();
     test_full_house();
+    test_full_house2();
     test_flush();
     test_straight();
     test_straight2();

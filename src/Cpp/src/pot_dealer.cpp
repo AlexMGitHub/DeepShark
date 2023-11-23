@@ -125,6 +125,7 @@ void Dealer::clear_cards_from_table()
     flop_card3 = Card();
     turn_card = Card();
     river_card = Card();
+
 }
 
 Card Dealer::deal_one_card()

@@ -130,11 +130,11 @@ void Deck::stack_the_deck(vector<Card> cards)
     {
         m_cards[i] = cards[i];
     }
+    m_top_card_idx = 0;
 }
 
 /* Hand Method Definitions
 ******************************************************************************/
-
 void Hand::add_card(const Card c)
 {
     /**
@@ -613,6 +613,25 @@ bool Hand::m_is_full_house()
         if (value == 3)
         {
             three = true;
+            if (three_rank == Rank::No_Card)
+            {
+                three_rank = key;
+            }
+            else
+            {
+                // Could potentially be two trips, choose highest rank for trip
+                // and lower rank trip for pair
+                pair = true;
+                if (key > three_rank)
+                {
+                    pair_rank = three_rank;
+                    three_rank = key;
+                }
+                else
+                {
+                    pair_rank = key;
+                }
+            }
             three_rank = key;
         }
         else if (value == 2)
@@ -631,9 +650,16 @@ bool Hand::m_is_full_house()
     }
     for (const auto& card : available_cards)
     {
-        if (card.rank == three_rank || card.rank == pair_rank)
+        if (card.rank == three_rank)
         {
             high_hand.push_back(card);
+        }
+    }
+    for (const auto& card : available_cards)
+    {
+        if (card.rank == pair_rank)
+        {
+            high_hand.push_back(card);  // Do two loops in case of two trips
         }
     }
     return true;

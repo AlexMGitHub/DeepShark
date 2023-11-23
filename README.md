@@ -3,6 +3,16 @@
 
 The name of the project, DeepShark, is a compounding of the phrases "deep learning" and "card shark."  Deep learning refers to machine learning methods that utilize artificial neural network architectures, while a "shark" is slang for a highly skilled poker player.  I would like to train an ANN to play poker well, hence DeepShark.
 
+### Description of Poker Environment
+
+### Initial "Dumb" AI Players
+I needed to be able to test the poker environment to ensure that the game rules were properly implemented.  I did this by writing "dumb" (i.e. hard-coded) AI player classes to play out poker games.  The first "AI" that I created was a purely random player who would randomly choose from the list of legal actions.  If the chosen action was a bet or raise, the AI would randomly choose a value between the minimum bet and the maximum value of its chip stack.
+
+This very simple AI allowed me to test out my user interface, serialization/deserialization code, and catch some bugs in the poker environment.  But once the code seemed functional I added another "scripted" AI class that accepts a pre-planned list of actions to take.  I used these scripted AI players to perform functional testing of the code by devising a few scripted scenarios that involved complicated end-game logic such as multiple side pots and ties.  This testing allowed me to catch a few subtle bugs in the poker code which led to improper payouts when there were multiple winners.
+
+I next wanted to write an AI class that would play somewhat intelligently but still maintain a stochastic nature.  This AI could play out longer and more realistic poker tournaments and possibly even be used to generate initial training data for a neural network.  I wanted this AI to have a rough idea of the strength of its current hand, but not get too bogged down into calculating complicated drawing odds and outs for a particular hand.
+
+I used some of the formulas and tables in [1] to generate approximate probabilities of winning the game based on the current hand without considering any draws or number of outs.  The math quickly gets complicated, and so I only generated look-up tables for a few specific scenarios and used ballpark-correct approximations for the calculations.  I applied a stochastic element to the AI's decision making by using a Gaussian distribution to randomly generate numbers.  The Gaussian distribution's average and standard deviation are determined both by the strength of the current hand and by the AI's play style.  The random number is compared to a threshold that is determined by the AI's play style.  The resulting action will depend upon whether the random number exceeded the threshold or not.  The expected result is a player AI that will typically make reasonable decisions based on the strength of its current hand, but can unpredictably take actions such as bluffing on a weak hand, slow playing a strong hand, calling another player's bluff, etc.
 
 ### Considerations for Neural Network Architecture
 One point of consideration is whether the neural network architecture ought to be some sort of recurrent neural network or other configuration that remembers previous states.
@@ -66,5 +76,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
 *   It's possible for there to be multiple ties splitting multiple side pots, and each pot must be split amongst the winners
 
 ## References and Acknowledgements
+
+[1] http://randomprobabilities.net/texas-holdem.php
 
 Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.

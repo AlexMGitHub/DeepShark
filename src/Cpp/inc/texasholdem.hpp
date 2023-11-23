@@ -59,9 +59,12 @@ public:
     const int tournament_number;
     bool debug;
     std::string filename;
+    size_t mc_total_runs = 0;
+    size_t mc_run_wins = 0;
     // Member Functions
     void begin_tournament();
     void begin_test_game(TestCase tc);
+    void begin_mc_game(std::vector<Card> player_hand, size_t num_runs);
 private:
     // Data Members
     int m_tournament_winner;
@@ -69,12 +72,14 @@ private:
     bool m_tournament_started = false;
     bool m_tournament_completed = false;
     bool m_test_game = false;
+    bool m_monte_carlo_game = false;
     int m_button_idx = 0;  // Dealer button
     int m_sb_idx = 1;  // Small blind
     int m_bb_idx = 2;  // Big blind
     TestCase m_test_case;
     GameHistory game_hist;
     TournamentHistory tourn_hist;
+    std::vector<Card> m_mc_deck;
     // Member Functions
     void m_begin_game(GameState gs);
     void m_pre_flop(GameState gs);
@@ -98,4 +103,7 @@ private:
     std::vector<unsigned> m_get_player_chip_counts() const;
     void m_load_script(GameState gs);
     void m_validate_test_results(GameState gs);
+    void m_load_mc_deck(GameState gs);
+    std::vector<Card> m_build_partial_deck(std::vector<Card> exclude);
+    void m_build_mc_deck(std::vector<Card> starting_hand);
 };

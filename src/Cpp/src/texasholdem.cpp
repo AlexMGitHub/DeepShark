@@ -7,6 +7,7 @@
 // C++ standard library
 #include <algorithm>    // For sort()
 #include <cassert>
+#include <stdexcept>    // For std::invalid_argument()
 #include <filesystem>   // for create_directory()
 #include <functional>   // For std::greater
 #include <iostream>
@@ -42,6 +43,7 @@ void TexasHoldEm::begin_tournament()
     }
     m_tournament_started = true;
     // Initialize players
+    full_player_list.clear();
     for (int i = 0; i < initial_num_players; i++)
     {
         full_player_list.push_back(
@@ -95,6 +97,27 @@ void TexasHoldEm::begin_test_game(TestCase tc)
     m_tournament_started = false;
 }
 
+void TexasHoldEm::begin_mc_game(vector<Card> starting_hand, size_t num_runs)
+{
+    /**
+     * Execute Monte Carlo simulations.
+    */
+    for (const auto& ai : player_ai_types)
+    {
+        assert((ai == AI_Type::CheckCall) && "All AI types must be CheckCall!");
+    }
+    m_monte_carlo_game = true;
+    for (size_t i = 0; i < num_runs; i++)
+    {
+        m_build_mc_deck(starting_hand);
+        dealer.stack_the_deck(m_mc_deck);
+        begin_tournament();
+        m_tournament_started = false;
+    }
+    m_monte_carlo_game = false;
+
+}
+
 /* Private Texas Hold 'Em Method Definitions
 ********************************************/
 void TexasHoldEm::m_begin_game(GameState gs)
@@ -132,6 +155,12 @@ void TexasHoldEm::m_begin_game(GameState gs)
     }
     else  // Heads-up play
     {
+        if (game_hist.game_number == 0)
+        {
+            m_button_idx = 0;
+            m_sb_idx = 0;
+            m_bb_idx = 1;
+        }
         full_player_list[m_button_idx].blind = Blind::Dealer_Button_and_Small_Blind;
         full_player_list[m_bb_idx].blind = Blind::Big_Blind;
     }
@@ -160,7 +189,7 @@ void TexasHoldEm::m_begin_game(GameState gs)
         gs.raise_player_idx = m_bb_idx;
     }
     // Deal cards to players
-    if (!m_test_game)
+    if (!m_test_game && !m_monte_carlo_game)
     {
         dealer.shuffle_deck();  // Don't disrupt order of cards if test game
     }
@@ -388,7 +417,7 @@ void TexasHoldEm::m_end_game(GameState gs)
     game_hist.num_states = game_hist.states.size();
     tourn_hist.games.push_back(game_hist);
     tourn_hist.num_games = tourn_hist.games.size();
-    if (num_players == 1)
+    if (num_players == 1 && !(m_test_game || m_monte_carlo_game))
     {
         m_tournament_completed = true;
         cout << "Tournament is complete!" << endl;
@@ -414,6 +443,12 @@ void TexasHoldEm::m_end_game(GameState gs)
     if (m_test_game)
     {
         m_validate_test_results(gs);
+    }
+    else if (m_monte_carlo_game)
+    {
+        // Player 1 is dealt the scenario's cards by the dealer player 0
+        if (gs.player_chip_counts[1] > MAX_BUY_IN) { mc_run_wins++; }
+        mc_total_runs++;
     }
     else
     {
@@ -1102,4 +1137,122 @@ void TexasHoldEm::m_validate_test_results(GameState gs)
      * Compare the final game state to the expected test results.
     */
     m_test_case.validate_results(gs);
+}
+
+vector<Card> TexasHoldEm::m_build_partial_deck(vector<Card> exclude)
+{
+    /**
+     * Creates a partial deck of cards that does not include specified cards.
+     *
+     * Used for a Monte Carlo simulation.
+    */
+    size_t size = 0;
+    std::vector<Card> cards;
+    Card temp_card;
+    cards.resize(NUMBER_CARDS_IN_DECK - exclude.size());
+    for (const auto& i : Card_Suits)
+    {
+        for (const auto& j : Card_Ranks)
+        {
+            temp_card = Card(i, j);
+            if (std::find(exclude.begin(), exclude.end(), temp_card)
+                == exclude.end())
+            {
+                cards[size++] = temp_card;
+            }
+        }
+    }
+    return cards;
+}
+
+void TexasHoldEm::m_build_mc_deck(vector<Card> starting_hand)
+{
+    /**
+     * Constructs a deck with a mix of random and user-specified cards.
+     *
+     * Used for a Monte Carlo simulation.
+    */
+    vector<Card> partial_deck = m_build_partial_deck(starting_hand);
+    std::shuffle(partial_deck.begin(), partial_deck.end(), rng);
+    int pd_idx = 0;
+    m_mc_deck.resize(NUMBER_CARDS_IN_DECK);
+    // Add specified hole cards to Monte Carlo deck
+    m_mc_deck[0] = starting_hand[0];
+    m_mc_deck[initial_num_players] = starting_hand[1];
+    for (int i = 1; i < (initial_num_players); i++)
+    {
+        // Add random first hole card for other players
+        m_mc_deck[i] = partial_deck[pd_idx++];
+    }
+    for (int i = initial_num_players + 1; i < (initial_num_players * 2); i++)
+    {
+        // Add random second hole card for other players
+        m_mc_deck[i] = partial_deck[pd_idx++];
+    }
+    // Add card burned before flop
+    m_mc_deck[initial_num_players * 2] = partial_deck[pd_idx++];
+    if (starting_hand.size() == 2)
+    {
+        // Add random flop cards, turn card, and river card
+        m_mc_deck[initial_num_players * 2 + 1] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 2] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 3] = partial_deck[pd_idx++];
+        // Turn burn card
+        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        // Turn
+        m_mc_deck[initial_num_players * 2 + 5] = partial_deck[pd_idx++];
+        // River burn card
+        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        // River
+        m_mc_deck[initial_num_players * 2 + 7] = partial_deck[pd_idx++];
+    }
+    else if (starting_hand.size() == 5)
+    {
+        // Add specified flop cards, random turn and river
+        m_mc_deck[initial_num_players * 2 + 1] = starting_hand[2];
+        m_mc_deck[initial_num_players * 2 + 2] = starting_hand[3];
+        m_mc_deck[initial_num_players * 2 + 3] = starting_hand[4];
+        // Turn burn card
+        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        // Turn
+        m_mc_deck[initial_num_players * 2 + 5] = partial_deck[pd_idx++];
+        // River burn card
+        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        // River
+        m_mc_deck[initial_num_players * 2 + 7] = partial_deck[pd_idx++];
+    }
+    else if (starting_hand.size() == 6)
+    {
+        // Add specified flop and turn cards, random river
+        m_mc_deck[initial_num_players * 2 + 1] = starting_hand[2];
+        m_mc_deck[initial_num_players * 2 + 2] = starting_hand[3];
+        m_mc_deck[initial_num_players * 2 + 3] = starting_hand[4];
+        // Turn burn card
+        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        // Turn
+        m_mc_deck[initial_num_players * 2 + 5] = starting_hand[5];
+        // River burn card
+        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        // River
+        m_mc_deck[initial_num_players * 2 + 7] = partial_deck[pd_idx++];
+    }
+    else if (starting_hand.size() == 7)
+    {
+        // Add specified flop, turn, and river cards
+        m_mc_deck[initial_num_players * 2 + 1] = starting_hand[2];
+        m_mc_deck[initial_num_players * 2 + 2] = starting_hand[3];
+        m_mc_deck[initial_num_players * 2 + 3] = starting_hand[4];
+        // Turn burn card
+        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        // Turn
+        m_mc_deck[initial_num_players * 2 + 5] = starting_hand[5];
+        // River burn card
+        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        // River
+        m_mc_deck[initial_num_players * 2 + 7] = starting_hand[6];
+    }
+    else
+    {
+        throw std::invalid_argument("Starting hand must have size of 2, 5, 6, or 7!");
+    }
 }

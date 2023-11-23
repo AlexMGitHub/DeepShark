@@ -21,7 +21,7 @@
 struct GameState;
 class TexasHoldEm;
 
-/* Declarations
+/* AI Declarations
 ******************************************************************************/
 class PlayerAI
 {
@@ -68,6 +68,30 @@ private:
     int m_action_number = 0;
 };
 
+class CheckCallAI : public PlayerAI
+{
+public:
+    // Constructors
+    CheckCallAI(std::mt19937& rng) : PlayerAI(rng) {}
+    // Data Members
+    const constants::AI_Type ai = constants::AI_Type::CheckCall;
+    // Member Functions
+    void player_act(GameState& gs) override;
+};
+
+// class PersonalityAI : public PlayerAI
+// {
+// public:
+//     // Constructors
+//     PersonalityAI(std::mt19937& rng) : PlayerAI(rng) {}
+//     // Data Members
+//     int confidence_level;
+//     // Member Functions
+//     void assess_confidence(GameState& gs);
+// };
+
+/* Player Declarations
+******************************************************************************/
 class Player
 {
 public:
