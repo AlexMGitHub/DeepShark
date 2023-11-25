@@ -82,10 +82,13 @@ private:
     bool m_is_one_pair();
     bool m_is_two_pair();
     bool m_is_three_of_a_kind();
+    bool m_is_wheel_straight();
+    bool m_is_wheel_straight(std::vector<Card> hand);
     bool m_is_straight();
     bool m_is_straight(std::vector<Card> hand);
     bool m_is_flush();
     bool m_is_full_house();
     bool m_is_four_of_a_kind();
-    bool m_is_straight_flush();
+    bool m_is_wheel_straight_flush(std::vector<Card> hand);
+    bool m_is_straight_flush(std::vector<Card> hand);
 };

@@ -29,10 +29,10 @@ CPPFLAGS += -Wall			# Enables warnings for all questionable constructions
 CPPFLAGS += -Wextra			# Enables additional warnings
 CPPFLAGS += -Wconversion	# Warn for implicit conversions that may alter a value
 CPPFLAGS += -Werror			# Make all warnings into errors
-CPPFLAGS += -g				# Enable debugging
-CPPFLAGS += -O0				# Disable most optimizations, use with debugging
+#CPPFLAGS += -g				# Enable debugging
+#CPPFLAGS += -O0				# Disable most optimizations, use with debugging
 CPPFLAGS += -std=c++23		# Enable support for ISO C++23 standard
-#CPPFLAGS += -O3			# Enable many optimizations
+CPPFLAGS += -O3			# Enable many optimizations
 
 ## Define source, dependencies (headers), and object files
 ## Then append directory to the filenames

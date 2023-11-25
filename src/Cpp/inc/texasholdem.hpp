@@ -46,6 +46,21 @@ public:
     {
         assert((num_players >= 2 && num_players <= 10) &&
             "Number of players must be between 2 and 10!");
+        // Initialize players
+        for (int i = 0; i < initial_num_players; i++)
+        {
+            full_player_list.push_back(
+                Player(
+                    i,
+                    constants::MAX_BUY_IN,
+                    player_ai_types[i],
+                    rng));
+        }
+        // Initalize data storage structures
+        tourn_hist.tournament_number = tournament_number;
+        tourn_hist.initial_player_count = initial_num_players;
+        tourn_hist.random_seed = random_seed;
+        game_hist.game_number = 0;
     }
     // Data Members
     std::vector<constants::AI_Type> player_ai_types;
@@ -79,6 +94,7 @@ private:
     TestCase m_test_case;
     GameHistory game_hist;
     TournamentHistory tourn_hist;
+    std::vector<Card> m_partial_deck;
     std::vector<Card> m_mc_deck;
     // Member Functions
     void m_begin_game(GameState gs);
@@ -104,6 +120,6 @@ private:
     void m_load_script(GameState gs);
     void m_validate_test_results(GameState gs);
     void m_load_mc_deck(GameState gs);
-    std::vector<Card> m_build_partial_deck(std::vector<Card> exclude);
+    void m_build_partial_deck(std::vector<Card> exclude);
     void m_build_mc_deck(std::vector<Card> starting_hand);
 };

@@ -42,24 +42,6 @@ void TexasHoldEm::begin_tournament()
         return;
     }
     m_tournament_started = true;
-    // Initialize players
-    full_player_list.clear();
-    for (int i = 0; i < initial_num_players; i++)
-    {
-        full_player_list.push_back(
-            Player(
-                i,
-                MAX_BUY_IN,
-                player_ai_types[i],
-                rng));
-    }
-    // Initalize data storage structures
-    tourn_hist.games.clear();
-    tourn_hist.tournament_number = tournament_number;
-    tourn_hist.initial_player_count = initial_num_players;
-    tourn_hist.random_seed = random_seed;
-    game_hist.game_number = 0;
-    game_hist.states.clear();
     GameState gs;
     gs.random_seed = tourn_hist.random_seed;
     gs.tournament_number = tourn_hist.tournament_number;
@@ -107,10 +89,20 @@ void TexasHoldEm::begin_mc_game(vector<Card> starting_hand, size_t num_runs)
         assert((ai == AI_Type::CheckCall) && "All AI types must be CheckCall!");
     }
     m_monte_carlo_game = true;
+    m_build_partial_deck(starting_hand);
+    m_mc_deck.resize(NUMBER_CARDS_IN_DECK);
     for (size_t i = 0; i < num_runs; i++)
     {
+        std::shuffle(m_partial_deck.begin(), m_partial_deck.end(), rng);
         m_build_mc_deck(starting_hand);
         dealer.stack_the_deck(m_mc_deck);
+        tourn_hist.games.clear();
+        game_hist.states.clear();
+        for (auto& player : full_player_list)
+        {
+            player.m_eliminated = false;
+            player.m_chip_count = MAX_BUY_IN;
+        }
         begin_tournament();
         m_tournament_started = false;
     }
@@ -1139,7 +1131,7 @@ void TexasHoldEm::m_validate_test_results(GameState gs)
     m_test_case.validate_results(gs);
 }
 
-vector<Card> TexasHoldEm::m_build_partial_deck(vector<Card> exclude)
+void TexasHoldEm::m_build_partial_deck(vector<Card> exclude)
 {
     /**
      * Creates a partial deck of cards that does not include specified cards.
@@ -1147,9 +1139,8 @@ vector<Card> TexasHoldEm::m_build_partial_deck(vector<Card> exclude)
      * Used for a Monte Carlo simulation.
     */
     size_t size = 0;
-    std::vector<Card> cards;
     Card temp_card;
-    cards.resize(NUMBER_CARDS_IN_DECK - exclude.size());
+    m_partial_deck.resize(NUMBER_CARDS_IN_DECK - exclude.size());
     for (const auto& i : Card_Suits)
     {
         for (const auto& j : Card_Ranks)
@@ -1158,11 +1149,10 @@ vector<Card> TexasHoldEm::m_build_partial_deck(vector<Card> exclude)
             if (std::find(exclude.begin(), exclude.end(), temp_card)
                 == exclude.end())
             {
-                cards[size++] = temp_card;
+                m_partial_deck[size++] = temp_card;
             }
         }
     }
-    return cards;
 }
 
 void TexasHoldEm::m_build_mc_deck(vector<Card> starting_hand)
@@ -1172,39 +1162,36 @@ void TexasHoldEm::m_build_mc_deck(vector<Card> starting_hand)
      *
      * Used for a Monte Carlo simulation.
     */
-    vector<Card> partial_deck = m_build_partial_deck(starting_hand);
-    std::shuffle(partial_deck.begin(), partial_deck.end(), rng);
     int pd_idx = 0;
-    m_mc_deck.resize(NUMBER_CARDS_IN_DECK);
     // Add specified hole cards to Monte Carlo deck
     m_mc_deck[0] = starting_hand[0];
     m_mc_deck[initial_num_players] = starting_hand[1];
     for (int i = 1; i < (initial_num_players); i++)
     {
         // Add random first hole card for other players
-        m_mc_deck[i] = partial_deck[pd_idx++];
+        m_mc_deck[i] = m_partial_deck[pd_idx++];
     }
     for (int i = initial_num_players + 1; i < (initial_num_players * 2); i++)
     {
         // Add random second hole card for other players
-        m_mc_deck[i] = partial_deck[pd_idx++];
+        m_mc_deck[i] = m_partial_deck[pd_idx++];
     }
     // Add card burned before flop
-    m_mc_deck[initial_num_players * 2] = partial_deck[pd_idx++];
+    m_mc_deck[initial_num_players * 2] = m_partial_deck[pd_idx++];
     if (starting_hand.size() == 2)
     {
         // Add random flop cards, turn card, and river card
-        m_mc_deck[initial_num_players * 2 + 1] = partial_deck[pd_idx++];
-        m_mc_deck[initial_num_players * 2 + 2] = partial_deck[pd_idx++];
-        m_mc_deck[initial_num_players * 2 + 3] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 1] = m_partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 2] = m_partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 3] = m_partial_deck[pd_idx++];
         // Turn burn card
-        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 4] = m_partial_deck[pd_idx++];
         // Turn
-        m_mc_deck[initial_num_players * 2 + 5] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 5] = m_partial_deck[pd_idx++];
         // River burn card
-        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 6] = m_partial_deck[pd_idx++];
         // River
-        m_mc_deck[initial_num_players * 2 + 7] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 7] = m_partial_deck[pd_idx++];
     }
     else if (starting_hand.size() == 5)
     {
@@ -1213,13 +1200,13 @@ void TexasHoldEm::m_build_mc_deck(vector<Card> starting_hand)
         m_mc_deck[initial_num_players * 2 + 2] = starting_hand[3];
         m_mc_deck[initial_num_players * 2 + 3] = starting_hand[4];
         // Turn burn card
-        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 4] = m_partial_deck[pd_idx++];
         // Turn
-        m_mc_deck[initial_num_players * 2 + 5] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 5] = m_partial_deck[pd_idx++];
         // River burn card
-        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 6] = m_partial_deck[pd_idx++];
         // River
-        m_mc_deck[initial_num_players * 2 + 7] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 7] = m_partial_deck[pd_idx++];
     }
     else if (starting_hand.size() == 6)
     {
@@ -1228,13 +1215,13 @@ void TexasHoldEm::m_build_mc_deck(vector<Card> starting_hand)
         m_mc_deck[initial_num_players * 2 + 2] = starting_hand[3];
         m_mc_deck[initial_num_players * 2 + 3] = starting_hand[4];
         // Turn burn card
-        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 4] = m_partial_deck[pd_idx++];
         // Turn
         m_mc_deck[initial_num_players * 2 + 5] = starting_hand[5];
         // River burn card
-        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 6] = m_partial_deck[pd_idx++];
         // River
-        m_mc_deck[initial_num_players * 2 + 7] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 7] = m_partial_deck[pd_idx++];
     }
     else if (starting_hand.size() == 7)
     {
@@ -1243,11 +1230,11 @@ void TexasHoldEm::m_build_mc_deck(vector<Card> starting_hand)
         m_mc_deck[initial_num_players * 2 + 2] = starting_hand[3];
         m_mc_deck[initial_num_players * 2 + 3] = starting_hand[4];
         // Turn burn card
-        m_mc_deck[initial_num_players * 2 + 4] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 4] = m_partial_deck[pd_idx++];
         // Turn
         m_mc_deck[initial_num_players * 2 + 5] = starting_hand[5];
         // River burn card
-        m_mc_deck[initial_num_players * 2 + 6] = partial_deck[pd_idx++];
+        m_mc_deck[initial_num_players * 2 + 6] = m_partial_deck[pd_idx++];
         // River
         m_mc_deck[initial_num_players * 2 + 7] = starting_hand[6];
     }

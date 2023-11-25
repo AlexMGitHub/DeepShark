@@ -12,6 +12,8 @@ This very simple AI allowed me to test out my user interface, serialization/dese
 
 I next wanted to write an AI class that would play somewhat intelligently but still maintain a stochastic nature.  This AI could play out longer and more realistic poker tournaments and possibly even be used to generate initial training data for a neural network.  I wanted this AI to have a rough idea of the strength of its current hand, but not get too bogged down into calculating complicated drawing odds and outs for a particular hand.
 
+I called this class of dumb AIs the "heuristic" AI, as I used some basic poker rules of thumb to guide its decision making.  I combined these rules of thumb with a 
+
 I used some of the formulas and tables in [1] to generate approximate probabilities of winning the game based on the current hand without considering any draws or number of outs.  The math quickly gets complicated, and so I only generated look-up tables for a few specific scenarios and used ballpark-correct approximations for the calculations.  I applied a stochastic element to the AI's decision making by using a Gaussian distribution to randomly generate numbers.  The Gaussian distribution's average and standard deviation are determined both by the strength of the current hand and by the AI's play style.  The random number is compared to a threshold that is determined by the AI's play style.  The resulting action will depend upon whether the random number exceeded the threshold or not.  The expected result is a player AI that will typically make reasonable decisions based on the strength of its current hand, but can unpredictably take actions such as bluffing on a weak hand, slow playing a strong hand, calling another player's bluff, etc.
 
 ### Considerations for Neural Network Architecture
@@ -78,5 +80,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
 ## References and Acknowledgements
 
 [1] http://randomprobabilities.net/texas-holdem.php
+
+[2] https://www.pokerlistings.com/strategy/playing-tight-how-it-makes-your-decisions-easier
 
 Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.

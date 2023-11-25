@@ -126,6 +126,58 @@ void test_straight_flush()
     hand_assert(cards5, correct_hand, correct_hand_rank);
 }
 
+void test_wheel_straight_flush1()
+{
+    /**
+     * Test is_straight_flush() with a "wheel" straight where the ace is rank 1.
+    */
+    cout << endl << "- test_wheel_straight_flush1..." << endl;
+    // Test Fixtures
+    std::array<Card, 7> cards{
+        Card(Suit::Diamond, Rank::Ace),
+        Card(Suit::Diamond, Rank::Three),
+        Card(Suit::Diamond, Rank::Two),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Diamond, Rank::Five),
+        Card(Suit::Diamond, Rank::Four),
+        Card(Suit::Diamond, Rank::Six)
+    };
+    span<Card> cards7(cards.begin(), cards.end());
+    span<Card> cards6(cards.begin(), cards.end() - 1);
+    span<Card> cards5(cards.begin(), cards.end() - 2);
+    array<Card, 5> correct_hand5{
+        Card(Suit::Diamond, Rank::Two),
+        Card(Suit::Diamond, Rank::Three),
+        Card(Suit::Diamond, Rank::Five),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Diamond, Rank::Ace),
+    };
+    array<Card, 5> correct_hand6{
+        Card(Suit::Diamond, Rank::Ace),
+        Card(Suit::Diamond, Rank::Two),
+        Card(Suit::Diamond, Rank::Three),
+        Card(Suit::Diamond, Rank::Four),
+        Card(Suit::Diamond, Rank::Five),
+    };
+    array<Card, 5> correct_hand7{
+        Card(Suit::Diamond, Rank::Two),
+        Card(Suit::Diamond, Rank::Three),
+        Card(Suit::Diamond, Rank::Four),
+        Card(Suit::Diamond, Rank::Five),
+        Card(Suit::Diamond, Rank::Six),
+    };
+    HandRank correct5_hand_rank = HandRank::Flush;
+    HandRank correct6_hand_rank = HandRank::Wheel_Straight_Flush;
+    HandRank correct7_hand_rank = HandRank::Straight_Flush;
+    // Execute tests
+    cout << "\t- " << "test 7 cards...";
+    hand_assert(cards7, correct_hand7, correct7_hand_rank);
+    cout << "\t- " << "test 6 cards...";
+    hand_assert(cards6, correct_hand6, correct6_hand_rank);
+    cout << "\t- " << "test 5 cards...";
+    hand_assert(cards5, correct_hand5, correct5_hand_rank);
+}
+
 void test_four_of_a_kind()
 {
     cout << endl << "- test_four_of_a_kind..." << endl;
@@ -424,6 +476,57 @@ void test_straight4()
     hand_assert(cards5, correct_hand, correct_hand_rank);
 }
 
+void test_wheel_straight1()
+{
+    /**
+     * Test is_straight() with a "wheel" straight where the ace is rank 1.
+    */
+    cout << endl << "- test_wheel_straight1..." << endl;
+    // Test Fixtures
+    std::array<Card, 7> cards{
+        Card(Suit::Diamond, Rank::Ace),
+        Card(Suit::Club, Rank::Three),
+        Card(Suit::Heart, Rank::Two),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Club, Rank::Five),
+        Card(Suit::Heart, Rank::Ace),
+        Card(Suit::Spade, Rank::Four)
+    };
+    span<Card> cards7(cards.begin(), cards.end());
+    span<Card> cards6(cards.begin(), cards.end() - 1);
+    span<Card> cards5(cards.begin(), cards.end() - 2);
+    array<Card, 5> correct_hand5{
+        Card(Suit::Heart, Rank::Two),
+        Card(Suit::Club, Rank::Three),
+        Card(Suit::Club, Rank::Five),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Diamond, Rank::Ace),
+    };
+    array<Card, 5> correct_hand6{
+        Card(Suit::Club, Rank::Three),
+        Card(Suit::Club, Rank::Five),
+        Card(Suit::Diamond, Rank::King),
+        Card(Suit::Diamond, Rank::Ace),
+        Card(Suit::Heart, Rank::Ace),
+    };
+    array<Card, 5> correct_hand7{
+        Card(Suit::Heart, Rank::Ace),
+        Card(Suit::Heart, Rank::Two),
+        Card(Suit::Club, Rank::Three),
+        Card(Suit::Spade, Rank::Four),
+        Card(Suit::Club, Rank::Five),
+    };
+    HandRank correct5_hand_rank = HandRank::High_Card;
+    HandRank correct6_hand_rank = HandRank::Pair;
+    HandRank correct7_hand_rank = HandRank::Wheel_Straight;
+    // Execute tests
+    cout << "\t- " << "test 7 cards...";
+    hand_assert(cards7, correct_hand7, correct7_hand_rank);
+    cout << "\t- " << "test 6 cards...";
+    hand_assert(cards6, correct_hand6, correct6_hand_rank);
+    cout << "\t- " << "test 5 cards...";
+    hand_assert(cards5, correct_hand5, correct5_hand_rank);
+}
 
 void test_three_of_a_kind()
 {
@@ -564,6 +667,7 @@ int main()
     cout << endl << "Beginning tests...\n" << endl;
     test_royal_flush();
     test_straight_flush();
+    test_wheel_straight_flush1();
     test_four_of_a_kind();
     test_full_house();
     test_full_house2();
@@ -572,6 +676,7 @@ int main()
     test_straight2();
     test_straight3();
     test_straight4();
+    test_wheel_straight1();
     test_three_of_a_kind();
     test_two_pair();
     test_one_pair();

@@ -8,6 +8,7 @@
 ******************************************************************************/
 // C++ standard library
 #include <cassert>
+#include <chrono>       // For high_resolution_clock
 #include <iostream>
 #include <string>
 #include <vector>
@@ -42,7 +43,11 @@ void execute_test(const T test)
         0,
         false
     );
+    // Time execution of test
+    auto t1 = std::chrono::high_resolution_clock::now();
     the.begin_mc_game(test.starting_hand, test.num_runs);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_double = t2 - t1;
     // Print output
     std::cout << "\n\n" << test.test_desc << std::endl;
     std::cout << "\t- Number of players:\t\t" << test.num_players << std::endl;
@@ -59,6 +64,7 @@ void execute_test(const T test)
     double prob = static_cast<double>(the.mc_run_wins) /
         static_cast<double>(the.mc_total_runs) * 100;
     std::cout << "\t- Probability of win:\t\t" << prob << "%" << std::endl;
+    std::cout << "\t- Execution time:\t\t" << ms_double.count() << " ms\n";
     if (test.min_prob >= 0)
     {
         assert((prob >= test.min_prob) && "Simulated probability too low!");

@@ -590,7 +590,8 @@ void print_state(const GameState& gs)
     /**
      * Clear the terminal and then print the current poker game state.
     */
-    system("clear");
+    auto return_val = system("clear");
+    if (return_val) {/* Checking return_val to avoid warning */ }
     print_table(gs);
     print_console_output(gs);
 }

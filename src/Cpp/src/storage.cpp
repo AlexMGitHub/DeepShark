@@ -200,6 +200,11 @@ bool ShowdownStruct::operator>(const ShowdownStruct& other) const
                 }
             }
         }
+        else if (hand_rank == HandRank::Wheel_Straight ||
+            hand_rank == HandRank::Wheel_Straight_Flush)
+        {
+            // If both players have a wheel straight there is no tie-breaker
+        }
         else if (hand_rank == HandRank::Full_House)
         {
             Rank trip_rank = identify_card_groups(best_hand, 3);

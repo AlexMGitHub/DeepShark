@@ -192,17 +192,33 @@ void Hand::determine_best_hand()
     if (m_is_flush())
     {
         hand_rank = HandRank::Flush;
-        if (m_is_straight_flush())
+        if (m_is_straight_flush(flush_hand))
         {
             hand_rank = HandRank::Straight_Flush;
-            if (flush_hand[MAX_CARDS_IN_HAND - 1].rank == Rank::Ace)
+            if (straight_hand[straight_hand.size() - 1].rank == Rank::Ace)
             {
                 hand_rank = HandRank::Royal_Flush;
             }
+            for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
+            {
+                best_hand[i] = straight_hand[i];
+            }
         }
-        for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
+        else if (m_is_wheel_straight_flush(flush_hand))
         {
-            best_hand[i] = flush_hand[i];
+            hand_rank = HandRank::Wheel_Straight_Flush;
+            for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
+            {
+                best_hand[i] = straight_hand[i];
+            }
+        }
+        else  // Just a flush
+        {
+            auto flast = flush_hand.size();
+            for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
+            {
+                best_hand[i] = flush_hand[flast - MAX_CARDS_IN_HAND + i];
+            }
         }
     }
     else if (m_is_four_of_a_kind())
@@ -228,6 +244,14 @@ void Hand::determine_best_hand()
     else if (m_is_straight())
     {
         hand_rank = HandRank::Straight;
+        for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
+        {
+            best_hand[i] = straight_hand[i];
+        }
+    }
+    else if (m_is_wheel_straight())
+    {
+        hand_rank = HandRank::Wheel_Straight;
         for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
         {
             best_hand[i] = straight_hand[i];
@@ -266,7 +290,11 @@ void Hand::determine_best_hand()
             best_hand[i] = available_cards[i + offset];
         }
     }
-    std::sort(best_hand.begin(), best_hand.end(), Hand::card_sorter);
+    if (hand_rank != HandRank::Wheel_Straight &&
+        hand_rank != HandRank::Wheel_Straight_Flush)
+    {
+        std::sort(best_hand.begin(), best_hand.end(), Hand::card_sorter);
+    }
 }
 
 void Hand::print_best_hand()
@@ -316,6 +344,9 @@ void Hand::print_hand_rank()
     case HandRank::Three_of_a_Kind:
         rank_str = "Three of a Kind";
         break;
+    case HandRank::Wheel_Straight:
+        rank_str = "Wheel Straight";
+        break;
     case HandRank::Straight:
         rank_str = "Straight";
         break;
@@ -327,6 +358,9 @@ void Hand::print_hand_rank()
         break;
     case HandRank::Four_of_a_Kind:
         rank_str = "Four of a Kind";
+        break;
+    case HandRank::Wheel_Straight_Flush:
+        rank_str = "Wheel Straight Flush";
         break;
     case HandRank::Straight_Flush:
         rank_str = "Straight Flush";
@@ -496,6 +530,7 @@ bool Hand::m_is_straight(std::vector<Card> hand)
     int current_card = 0;
     for (std::size_t i = 0, e = hand.size(); i != e; i++)
     {
+        straight_hand.clear();
         current_card = to_underlying(hand[i].rank);
         straight_hand.push_back(hand[i]);
         for (const auto& j : hand | std::views::drop(i + 1))
@@ -513,7 +548,7 @@ bool Hand::m_is_straight(std::vector<Card> hand)
             }
             else
             {
-                straight_hand.clear();
+                //straight_hand.clear();
                 break;
             }
         }
@@ -526,6 +561,59 @@ bool Hand::m_is_straight(std::vector<Card> hand)
         else
         {
             consecutive_cards = 1;
+        }
+    }
+    return false;
+}
+
+bool Hand::m_is_wheel_straight_flush(std::vector<Card> hand)
+{
+    return m_is_wheel_straight(hand);
+}
+
+bool Hand::m_is_wheel_straight()
+{
+    return m_is_wheel_straight(available_cards);
+}
+
+bool Hand::m_is_wheel_straight(std::vector<Card> hand)
+{
+    // Check for "wheel" straight where Ace takes value of 1
+    straight_hand.clear();
+    if (hand[hand.size() - 1].rank == Rank::Ace)
+    {
+        straight_hand.push_back(hand[hand.size() - 1]);
+        bool two = false;
+        bool three = false;
+        bool four = false;
+        bool five = false;
+        for (const auto& card : hand)
+        {
+            auto rank = to_underlying(card.rank);
+            if (rank == 2)
+            {
+                two = true;
+                straight_hand.push_back(card);
+            }
+            else if (rank == 3)
+            {
+                three = true;
+                straight_hand.push_back(card);
+            }
+            else if (rank == 4)
+            {
+                four = true;
+                straight_hand.push_back(card);
+            }
+            else if (rank == 5)
+            {
+                five = true;
+                straight_hand.push_back(card);
+            }
+        }
+        if (two && three && four && five)
+        {
+            return true;  // Ace-low "wheel" straight
         }
     }
     return false;
@@ -558,41 +646,35 @@ bool Hand::m_is_flush()
             throw std::invalid_argument("Received invalid No_Card suit.");
         }
     }
-    if (d.size() >= 5 || h.size() >= 5 || c.size() >= 5 || s.size() >= 5)
+    // Choose 5 highest ranked cards of the same suit
+    if (d.size() >= 5)
     {
-        // Choose 5 highest ranked cards of the same suit
-        if (d.size() >= 5)
-        {
-            std::sort(d.begin(), d.end(), Hand::card_sorter);
-            flush_hand = { d.end() - 5, d.end() };
-        }
-        else if (h.size() >= 5)
-        {
-            std::sort(h.begin(), h.end(), Hand::card_sorter);
-            flush_hand = { h.end() - 5, h.end() };
-        }
-        else if (c.size() >= 5)
-        {
-            std::sort(c.begin(), c.end(), Hand::card_sorter);
-            flush_hand = { c.end() - 5, c.end() };
-        }
-        else if (s.size() >= 5)
-        {
-            std::sort(s.begin(), s.end(), Hand::card_sorter);
-            flush_hand = { s.end() - 5, s.end() };
-        }
+        std::sort(d.begin(), d.end(), Hand::card_sorter);
+        //flush_hand = { d.end() - 5, d.end() };
+        flush_hand = d;
+    }
+    else if (h.size() >= 5)
+    {
+        std::sort(h.begin(), h.end(), Hand::card_sorter);
+        //flush_hand = { h.end() - 5, h.end() };
+        flush_hand = h;
+    }
+    else if (c.size() >= 5)
+    {
+        std::sort(c.begin(), c.end(), Hand::card_sorter);
+        //flush_hand = { c.end() - 5, c.end() };
+        flush_hand = c;
+    }
+    else if (s.size() >= 5)
+    {
+        std::sort(s.begin(), s.end(), Hand::card_sorter);
+        //flush_hand = { s.end() - 5, s.end() };
+        flush_hand = s;
     }
     else
     {
         return false;
     }
-    sort(flush_hand.begin(), flush_hand.end(), Hand::reverse_card_sorter);
-    for (size_t i = 0; i < MAX_CARDS_IN_HAND; i++)
-    {
-        best_hand[i] = flush_hand[i];
-    }
-    sort(flush_hand.begin(), flush_hand.end(), Hand::card_sorter);
-    sort(best_hand.begin(), best_hand.end(), Hand::card_sorter);
     return true;
 }
 
@@ -699,56 +781,7 @@ bool Hand::m_is_four_of_a_kind()
     return false;
 }
 
-bool Hand::m_is_straight_flush()
+bool Hand::m_is_straight_flush(std::vector<Card> hand)
 {
-    std::vector<Card> new_flush_hand;
-    if (d.size() > 5 || h.size() > 5 || c.size() > 5 || s.size() > 5)
-    {
-        if (d.size() > 5)
-        {
-            new_flush_hand = d;
-        }
-        else if (h.size() >= 5)
-        {
-            new_flush_hand = h;
-        }
-        else if (c.size() >= 5)
-        {
-            new_flush_hand = c;
-        }
-        else if (s.size() >= 5)
-        {
-            new_flush_hand = s;
-        }
-    }
-    else
-    {
-        return m_is_straight(flush_hand); // Only five cards of same suit
-    }
-
-    // Have either 6 or 7 cards of the same suit
-
-    // If have 7 cards of same suit:
-    // Check middle 5 cards to see if they could be a straight flush
-    sort(new_flush_hand.begin(), new_flush_hand.end(), Hand::card_sorter);
-    if (new_flush_hand.size() == 7)
-    {
-        std::vector<Card> sub_hand = { new_flush_hand.begin() + 1, new_flush_hand.end() - 1 };
-        if (m_is_straight(sub_hand) && !m_is_straight(flush_hand))
-        {
-            flush_hand = sub_hand;
-            return m_is_straight(flush_hand);
-        }
-    }
-
-    // If have 6 cards of same suit or middle 5 cards weren't a flush:
-    // Check first 5 cards to see if they could be a straight flush
-    std::vector<Card> sub_hand2 = { new_flush_hand.begin(), new_flush_hand.begin() + 5 };
-    if (m_is_straight(sub_hand2) && !m_is_straight(flush_hand))
-    {
-        flush_hand = sub_hand2;
-        return m_is_straight(flush_hand);
-    }
-    return m_is_straight(flush_hand);
+    return m_is_straight(hand);
 }
-
