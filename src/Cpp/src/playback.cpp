@@ -78,6 +78,9 @@ string to_string(const HandRank& hr)
     case HandRank::Three_of_a_Kind:
         return "Three of a Kind";
         break;
+    case HandRank::Wheel_Straight:
+        return "Wheel Straight";
+        break;
     case HandRank::Straight:
         return "Straight";
         break;
@@ -89,6 +92,9 @@ string to_string(const HandRank& hr)
         break;
     case HandRank::Four_of_a_Kind:
         return "Four of a Kind";
+        break;
+    case HandRank::Wheel_Straight_Flush:
+        return "Wheel Straight Flush";
         break;
     case HandRank::Straight_Flush:
         return "Straight Flush";
@@ -192,6 +198,15 @@ string to_string(const constants::AI_Type& ai)
     case AI_Type::Scripted:
         return "Scripted";
         break;
+    case AI_Type::CheckCall:
+        return "CheckCall";
+        break;
+    case AI_Type::Heuristic_TAG:
+        return "Heuristic_TAG";
+        break;
+    case AI_Type::Heuristic_LAG:
+        return "Heuristic_LAG";
+        break;
     default:
         cout << "Invalid AI type for string conversion!" << endl;
         exit(-1);
@@ -258,6 +273,7 @@ void build_table(Table& player_table, const GameState& gs)
         "Remaining Players",
         "Random Seed",
         "",
+        "",
         ""
         });
     player_table.add_row({
@@ -269,9 +285,10 @@ void build_table(Table& player_table, const GameState& gs)
         to_string(gs.num_players),
         to_string(gs.random_seed),
         "",
+        "",
         ""
         });
-    player_table.add_row({ "", "", "", "", "", "", "", "", "" });
+    player_table.add_row({ "", "", "", "", "", "", "", "", "", "" });
     player_table.add_row({
         "Flop",
         "Turn",
@@ -281,6 +298,7 @@ void build_table(Table& player_table, const GameState& gs)
         "Pot Turn",
         "Pot River",
         "Pot Total",
+        "",
         ""
         });
     player_table.add_row({
@@ -294,9 +312,10 @@ void build_table(Table& player_table, const GameState& gs)
         calc_pot_per_round(gs, Round::Turn),
         calc_pot_per_round(gs, Round::River),
         to_string(gs.pot_chip_count),
+        "",
         ""
         });
-    player_table.add_row({ "", "", "", "", "", "", "", "", "" });
+    player_table.add_row({ "", "", "", "", "", "", "", "", "", "" });
     player_table.add_row({
         "Player",
         "Blind",
@@ -306,12 +325,31 @@ void build_table(Table& player_table, const GameState& gs)
         "AI",
         "Hole Cards",
         "Best Hand",
-        "Hand Rank"
+        "Hand Rank",
+        "Win %"
         });
+    string win_perc_str;
     for (int i = 0; i < gs.initial_num_players; i++)
     {
         if (gs.remaining_players[i])  // If player not eliminated from tourney
         {
+            if (gs.win_perc[i] > 0)
+            {
+                int width;
+                if (gs.win_perc[i] == 1 || gs.win_perc[i] < 0.1)
+                {
+                    width = 3;
+                }
+                else
+                {
+                    width = 4;
+                }
+                win_perc_str = to_string(gs.win_perc[i] * 100).substr(0, width) + "%";
+            }
+            else
+            {
+                win_perc_str = "-";
+            }
             if (i == gs.player_idx &&
                 gs.round != Round::Showdown &&
                 gs.round != Round::Game_Result)
@@ -327,7 +365,8 @@ void build_table(Table& player_table, const GameState& gs)
                 to_string(gs.ai_types[i]),
                 to_string(gs.hole_cards[i]),
                 to_string(gs.best_hands[i]),
-                to_string(gs.hand_ranks[i])
+                to_string(gs.hand_ranks[i]),
+                win_perc_str
                     });
             }
             else
@@ -342,7 +381,8 @@ void build_table(Table& player_table, const GameState& gs)
                     to_string(gs.ai_types[i]),
                     to_string(gs.hole_cards[i]),
                     to_string(gs.best_hands[i]),
-                    to_string(gs.hand_ranks[i])
+                    to_string(gs.hand_ranks[i]),
+                    win_perc_str
                     });
             }
         }
@@ -350,6 +390,7 @@ void build_table(Table& player_table, const GameState& gs)
         {
             player_table.add_row({
                 "Eliminated",
+                "",
                 "",
                 "",
                 "",
@@ -525,7 +566,8 @@ void print_console_output(const GameState& gs)
                 output = "- Players ";  // Print eliminated players
                 for (int i = 0; i < gs.initial_num_players; i++)
                 {
-                    if (gs.remaining_players[i] != remaining_players[i])
+                    if (gs.remaining_players[i] == 0 &&
+                        remaining_players[i] == 1)
                     {
                         output += to_string(i) + ", ";
                     }

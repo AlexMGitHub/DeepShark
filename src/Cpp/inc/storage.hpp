@@ -61,6 +61,7 @@ struct GameState
     int random_seed;
     int tournament_number;
     int game_number;
+    int num_games_per_blind_level;
     int initial_num_players;
     int num_players;
     int num_active_players;
@@ -105,6 +106,7 @@ struct GameState
     // After action
     constants::Action player_action;
     unsigned player_bet;
+    std::vector<double> win_perc;
     // After Showdown
     size_t num_showdown_players;
     std::vector<ShowdownStruct> showdown_players;

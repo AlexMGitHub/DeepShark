@@ -151,11 +151,11 @@ struct test_multi_way_ties_1
     ),
     std::vector<std::pair<constants::Action, unsigned>>(1,
         std::make_pair(constants::Action::All_In, player_chip_counts[1] -
-        constants::BLINDS_STRUCTURE.at(initial_num_players).first)
+        constants::BLINDS_STRUCTURE.at(0).first)
     ),
     std::vector<std::pair<constants::Action, unsigned>>(1,
         std::make_pair(constants::Action::All_In, player_chip_counts[2] -
-        constants::BLINDS_STRUCTURE.at(initial_num_players).second)
+        constants::BLINDS_STRUCTURE.at(0).second)
     ),
     std::vector<std::pair<constants::Action, unsigned>>(1,
         std::make_pair(constants::Action::All_In, player_chip_counts[3])
@@ -241,11 +241,11 @@ struct test_multi_way_ties_2
     ),
     std::vector<std::pair<constants::Action, unsigned>>(1,
         std::make_pair(constants::Action::All_In, player_chip_counts[1] -
-        constants::BLINDS_STRUCTURE.at(initial_num_players).first)
+        constants::BLINDS_STRUCTURE.at(0).first)
     ),
     std::vector<std::pair<constants::Action, unsigned>>(1,
         std::make_pair(constants::Action::All_In, player_chip_counts[2] -
-        constants::BLINDS_STRUCTURE.at(initial_num_players).second)
+        constants::BLINDS_STRUCTURE.at(0).second)
     ),
     std::vector<std::pair<constants::Action, unsigned>>(1,
         std::make_pair(constants::Action::All_In, player_chip_counts[3])

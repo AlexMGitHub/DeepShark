@@ -123,9 +123,9 @@ void TexasHoldEm::m_begin_game(GameState gs)
         if (!player.is_player_eliminated())
         {
             player.set_player_active();
-            player.prev_action = Action::No_Action;
-            player.blind = Blind::No_Blind;
         }
+        player.prev_action = Action::No_Action;
+        player.blind = Blind::No_Blind;
     }
     // Identify players with dealer button and blinds
     if (num_players > 2)
@@ -157,8 +157,8 @@ void TexasHoldEm::m_begin_game(GameState gs)
         full_player_list[m_bb_idx].blind = Blind::Big_Blind;
     }
     // Collect blinds
-    unsigned sb = BLINDS_STRUCTURE.at(num_players).first;
-    unsigned bb = BLINDS_STRUCTURE.at(num_players).second;
+    unsigned sb = BLINDS_STRUCTURE.at(m_blind_level()).first;
+    unsigned bb = BLINDS_STRUCTURE.at(m_blind_level()).second;
     unsigned sb_pmt = full_player_list[m_sb_idx].pay_blind(sb);
     unsigned bb_pmt = full_player_list[m_bb_idx].pay_blind(bb);
     pot.add_chips(sb_pmt, m_sb_idx, Round::Pre_Flop);
@@ -184,6 +184,7 @@ void TexasHoldEm::m_begin_game(GameState gs)
     if (!m_test_game && !m_monte_carlo_game)
     {
         dealer.shuffle_deck();  // Don't disrupt order of cards if test game
+        // cout << "Starting game #" << game_hist.game_number << endl;
     }
     dealer.deal_to_players(full_player_list, num_players, m_button_idx);
     gs.blinds.clear();
@@ -191,7 +192,9 @@ void TexasHoldEm::m_begin_game(GameState gs)
     gs.hole_cards.clear();
     gs.best_hands.clear();
     gs.hand_ranks.clear();
+    gs.win_perc.clear();
     gs.player_idx = 0;  // Ensure player index is initialized to a valid value
+    gs.num_games_per_blind_level = num_games_per_blind_level;
     for (int i = 0; i < initial_num_players; i++)
     {
         gs.blinds.push_back(full_player_list[i].blind);
@@ -200,6 +203,7 @@ void TexasHoldEm::m_begin_game(GameState gs)
         gs.best_hands.push_back(full_player_list[i].get_best_hand());
         gs.hand_ranks.push_back(full_player_list[i].get_best_hand_rank());
         gs.remaining_players[i] = !full_player_list[i].is_player_eliminated();
+        gs.win_perc.push_back(-1);
     }
     m_update_game_state(gs);
     m_pre_flop(gs);
@@ -219,9 +223,10 @@ void TexasHoldEm::m_pre_flop(GameState gs)
      * For heads-up poker (two players) the dealer/small blind goes first.
     */
     int starting_player = (m_bb_idx + 1) % initial_num_players;
+    gs.player_idx = starting_player;
     // Initialize game state for pre-flop
-    gs.min_bet = BLINDS_STRUCTURE.at(num_players).second;
-    gs.min_to_raise = BLINDS_STRUCTURE.at(num_players).second;
+    gs.min_bet = BLINDS_STRUCTURE.at(m_blind_level()).second;
+    gs.min_to_raise = BLINDS_STRUCTURE.at(m_blind_level()).second;
     gs.num_active_players = m_get_num_active_players();
     gs.round = Round::Pre_Flop;
     gs.legal_to_raise = true;
@@ -257,7 +262,7 @@ void TexasHoldEm::m_flop(GameState gs)
     */
     gs.round = Round::Flop;
     gs.min_bet = 0;
-    gs.min_to_raise = BLINDS_STRUCTURE.at(num_players).second;
+    gs.min_to_raise = BLINDS_STRUCTURE.at(m_blind_level()).second;
     gs.num_active_players = m_get_num_active_players();
     gs.legal_to_raise = true;
     gs.raise_active = false;
@@ -292,7 +297,7 @@ void TexasHoldEm::m_turn(GameState gs)
     */
     gs.round = Round::Turn;
     gs.min_bet = 0;
-    gs.min_to_raise = BLINDS_STRUCTURE.at(num_players).second;
+    gs.min_to_raise = BLINDS_STRUCTURE.at(m_blind_level()).second;
     gs.num_active_players = m_get_num_active_players();
     gs.legal_to_raise = true;
     gs.raise_active = false;
@@ -326,7 +331,7 @@ void TexasHoldEm::m_river(GameState gs)
     */
     gs.round = Round::River;
     gs.min_bet = 0;
-    gs.min_to_raise = BLINDS_STRUCTURE.at(num_players).second;
+    gs.min_to_raise = BLINDS_STRUCTURE.at(m_blind_level()).second;
     gs.num_active_players = m_get_num_active_players();
     gs.legal_to_raise = true;
     gs.raise_active = false;
@@ -366,7 +371,6 @@ void TexasHoldEm::m_showdown(GameState gs)
     if (debug) { print_state(gs); }
     m_end_game(gs);
 }
-
 
 void TexasHoldEm::m_end_game(GameState gs)
 {
@@ -694,7 +698,7 @@ void TexasHoldEm::m_determine_legal_actions(GameState& gs, int plyr_idx)
             (gs.max_bet > (gs.min_to_raise + gs.chips_to_call))
             )
         {
-            if (gs.chips_to_call == 0)
+            if (gs.chips_to_call == 0 && gs.round != Round::Pre_Flop)
             {
                 // Post-flop first bet
                 gs.legal_actions.push_back(Action::Bet);
@@ -799,7 +803,7 @@ void TexasHoldEm::m_validate_player_action(GameState& gs, int plyr_idx)
     }
 }
 
-bool TexasHoldEm::m_is_betting_over(GameState& gs) const
+bool TexasHoldEm::m_is_betting_over(GameState& gs)
 {
     /**
      * Determine if betting round has ended.
@@ -833,19 +837,16 @@ bool TexasHoldEm::m_is_betting_over(GameState& gs) const
      * each other's bets and proceed to the next round with a smaller bet.
     */
     // Use static variables to keep track of the start of each betting round
-    static int start_action = 0;
-    static Round round = Round::Pre_Flop;
-    static int adjusted_num_players = MAX_PLAYER_COUNT;
     if (gs.action_number == 0)
     {
-        start_action = 0;
-        round = Round::Pre_Flop;
-        adjusted_num_players = num_players;
+        m_start_action = 0;
+        m_round = Round::Pre_Flop;
+        m_adjusted_num_players = num_players;
     }
-    if (gs.round != round)
+    if (gs.round != m_round)
     {
-        round = gs.round;
-        start_action = gs.action_number;
+        m_round = gs.round;
+        m_start_action = gs.action_number;
     }
     if (m_get_num_active_players() == 1 ||  // All but one player folded
         m_get_num_active_not_allin_players() == 0)  // Every player all-in
@@ -854,11 +855,12 @@ bool TexasHoldEm::m_is_betting_over(GameState& gs) const
     }
     // Ensure that betting doesn't end before every player has had a chance to
     // act at least once.
-    if (gs.action_number == start_action)
+    if (gs.action_number == m_start_action)
     {
-        adjusted_num_players = m_get_num_active_not_allin_players();
+        m_adjusted_num_players = m_get_num_active_not_allin_players();
     }
-    if (gs.action_number < start_action + adjusted_num_players)
+    if (gs.action_number < m_start_action + m_adjusted_num_players &&
+        m_adjusted_num_players > 1)
     {
         return false;  // Not all players have acted during the round
     }
@@ -1242,4 +1244,14 @@ void TexasHoldEm::m_build_mc_deck(vector<Card> starting_hand)
     {
         throw std::invalid_argument("Starting hand must have size of 2, 5, 6, or 7!");
     }
+}
+
+int TexasHoldEm::m_blind_level()
+{
+    /**
+     * Calculate current blind level based on number of games played.
+    */
+    int blind_level = game_hist.game_number / num_games_per_blind_level;
+    if (blind_level > 8) { blind_level = 8; }
+    return blind_level;
 }

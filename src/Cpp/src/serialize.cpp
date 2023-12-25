@@ -85,6 +85,7 @@ GameState read_gamestate(std::ifstream& fs)
         fs.read(reinterpret_cast<char*>(&gs.random_seed), sizeof gs.random_seed);
         fs.read(reinterpret_cast<char*>(&gs.tournament_number), sizeof gs.tournament_number);
         fs.read(reinterpret_cast<char*>(&gs.game_number), sizeof gs.game_number);
+        fs.read(reinterpret_cast<char*>(&gs.num_games_per_blind_level), sizeof gs.num_games_per_blind_level);
         fs.read(reinterpret_cast<char*>(&gs.initial_num_players), sizeof gs.initial_num_players);
         fs.read(reinterpret_cast<char*>(&gs.num_players), sizeof gs.num_players);
         fs.read(reinterpret_cast<char*>(&gs.num_active_players), sizeof gs.num_active_players);
@@ -152,6 +153,9 @@ GameState read_gamestate(std::ifstream& fs)
         // After action
         fs.read(reinterpret_cast<char*>(&gs.player_action), sizeof gs.player_action);
         fs.read(reinterpret_cast<char*>(&gs.player_bet), sizeof gs.player_bet);
+        gs.win_perc.resize(gs.initial_num_players);
+        fs.read(reinterpret_cast<char*>(&gs.win_perc[0]),
+            sizeof(gs.win_perc[0]) * gs.initial_num_players);
 
         // After Showdown
         fs.read(reinterpret_cast<char*>(&gs.num_showdown_players), sizeof gs.num_showdown_players);
@@ -175,6 +179,7 @@ void write_gamestate(std::ofstream& fs, GameState& gs)
         fs.write(reinterpret_cast<char*>(&gs.random_seed), sizeof gs.random_seed);
         fs.write(reinterpret_cast<char*>(&gs.tournament_number), sizeof gs.tournament_number);
         fs.write(reinterpret_cast<char*>(&gs.game_number), sizeof gs.game_number);
+        fs.write(reinterpret_cast<char*>(&gs.num_games_per_blind_level), sizeof gs.num_games_per_blind_level);
         fs.write(reinterpret_cast<char*>(&gs.initial_num_players), sizeof gs.initial_num_players);
         fs.write(reinterpret_cast<char*>(&gs.num_players), sizeof gs.num_players);
         fs.write(reinterpret_cast<char*>(&gs.num_active_players), sizeof gs.num_active_players);
@@ -230,6 +235,8 @@ void write_gamestate(std::ofstream& fs, GameState& gs)
         // After action
         fs.write(reinterpret_cast<char*>(&gs.player_action), sizeof gs.player_action);
         fs.write(reinterpret_cast<char*>(&gs.player_bet), sizeof gs.player_bet);
+        fs.write(reinterpret_cast<char*>(&gs.win_perc[0]),
+            sizeof(gs.win_perc[0]) * gs.initial_num_players);
 
         // After Showdown
         fs.write(reinterpret_cast<char*>(&gs.num_showdown_players), sizeof gs.num_showdown_players);

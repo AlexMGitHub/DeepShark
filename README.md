@@ -12,9 +12,9 @@ This very simple AI allowed me to test out my user interface, serialization/dese
 
 I next wanted to write an AI class that would play somewhat intelligently but still maintain a stochastic nature.  This AI could play out longer and more realistic poker tournaments and possibly even be used to generate initial training data for a neural network.  I wanted this AI to have a rough idea of the strength of its current hand, but not get too bogged down into calculating complicated drawing odds and outs for a particular hand.
 
-I called this class of dumb AIs the "heuristic" AI, as I used some basic poker rules of thumb to guide its decision making.  I combined these rules of thumb with a 
+I called this class of dumb AIs the "heuristic" AI, as I used some basic poker rules of thumb to guide its decision making.  I combined these rules of thumb with a Monte Carlo simulation to assess the strength of the player's current position.  I found that math for calculating poker odds quickly gets complicated [[1]](#references), and a Monte Carlo simulation will get me a good enough answer to make reasonable decisions.  I only run Monte Carlo simulations during post-flop rounds, as pre-flop I judge the strength of the player's hand by the player's position at the table and whether the player's hole cards are contained in a list of strong starting hands.  I obtained the lists for a tight aggressive player (TAG) from [[2]](#reference), and added additional strong hands to the list for a loose aggressive player (LAG).  The TAG and LAG AI have identical playstyles; the only difference is that the LAG is willing to play a larger number of starting hands than the TAG.
 
-I used some of the formulas and tables in [1] to generate approximate probabilities of winning the game based on the current hand without considering any draws or number of outs.  The math quickly gets complicated, and so I only generated look-up tables for a few specific scenarios and used ballpark-correct approximations for the calculations.  I applied a stochastic element to the AI's decision making by using a Gaussian distribution to randomly generate numbers.  The Gaussian distribution's average and standard deviation are determined both by the strength of the current hand and by the AI's play style.  The random number is compared to a threshold that is determined by the AI's play style.  The resulting action will depend upon whether the random number exceeded the threshold or not.  The expected result is a player AI that will typically make reasonable decisions based on the strength of its current hand, but can unpredictably take actions such as bluffing on a weak hand, slow playing a strong hand, calling another player's bluff, etc.
+The Monte Carlo simulation adds a stochastic element to the AI's decision making as I used the resulting expected win probability in combination with pot odds to determine the player's action.  The pot odds are calculated as the ratio of the chips required to call the bet divided by the total amount of chips in the pot assuming that you call.  If the expected win percentage is larger than the pot odds, then it is worth calling as in the long-run you are expected to win more money than you would lose.  The pot odds are the ratio of the amount of money the player is risking by calling the bet to the amount of money the player could potentially win.  Intuitively, if the pot odds are small then we are risking a relatively small amount of money to win a lot of money.  The smaller the pot odds (as a percentage) and the larger the probability of winning, the stronger the player's position.  For situations where the pot odds and win probability are nearly equal, I used a uniform distribution to add further stochasticity to the player's decision making.  For example, if the ratio of the probability of winning to the pot odds is greater than a uniform random number between 0 and 1, then the player calls.  Otherwise the player checks or folds.  This prevents the AI from always folding to big bluffs, but still gives a probability of folding proportionate to how weak the hand is.  The expected result is a player AI that will typically make reasonable decisions based on the strength of its current hand, but can unpredictably take actions such as bluffing on a weak hand, slow playing a strong hand, calling another player's bluff, etc.
 
 ### Considerations for Neural Network Architecture
 One point of consideration is whether the neural network architecture ought to be some sort of recurrent neural network or other configuration that remembers previous states.
@@ -28,7 +28,9 @@ DeepShark was developed using Windows Subsystem for Linux (WSL) with an Ubuntu i
 
 There is some non-portable code (e.g. system("clear") to clear the terminal) that will not run in a non-Linux environment.
 
-## Abbreviated No Limit Texas Hold 'Em Poker Rules
+## Appendices
+
+### Appendix A: Abbreviated No Limit Texas Hold 'Em Poker Rules
 
 Texas Hold 'Em is a popular poker variant that has community cards that all players at the table use to complete a poker hand.  Each player is dealt two secret "hole" cards to begin, and the rest of the cards are dealt face up on the table as the game proceeds.  At the start of each game, two players at the table must make mandatory minimum bets called "blinds."  There is a "small blind" and a "big blind," and these blinds rotate around the table after each game.
 
@@ -46,7 +48,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
     *   The big blind is twice the value of the small blind
     *   Blinds are considered the first bet of the game, and so the next bet during the pre-flop is actually a raise
     *   The maximum buy-in is the maximum number of chips that the player is allowed to bring to the table, and it is calculated as 100 times the initial big blind value
-    *   The value of the blinds increase as the poker tournament continues.  The structure of this increase depends on how fast you want the game to go, and I used this suggested structure from [PokerStrategy](https://www.pokerstrategy.com/strategy/live-poker/how-blinds-increase-structure/) to increase the blind value every time a player is eliminated from the tournament
+    *   The value of the blinds increase as the poker tournament continues.  The structure of this increase depends on how fast you want the game to go, and I used this suggested structure from [PokerStrategy](https://www.pokerstrategy.com/strategy/live-poker/how-blinds-increase-structure/) to increase the blind value after a user-defined number of games played
     *   If a player cannot afford the blind they are automatically put all-in
 
 *   The dealer deals hole cards starting with the first player to his left - the small blind.  
@@ -77,10 +79,127 @@ The following is a partial list of rules that are specific to the No Limit Texas
 *   In the case of a tie, the pot is split evenly amongst the winners.  If the pot is not evenly divisible then the remaining chip(s) are given to the player closest to the left (clockwise) of the dealer.
 *   It's possible for there to be multiple ties splitting multiple side pots, and each pot must be split amongst the winners
 
-## References and Acknowledgements
+## Appendix B: Heuristics for Playing Poker
+
+*   Play only pocket pairs or suited connectors, and some only in certain positions per chart
+*   Full ring of 10 players (7 - 10 players)
+    *   Early position: AA, KK, QQ, JJ, AKsuited
+    *   Mid: AQsuited, TT, AK
+    *   Late: AJsuited, KQsuited, AQ, 99
+*   Short handed (6 players or less)
+    *   Early: AA KK QQ JJ AKsuited AQsuited AK
+    *   Mid: AQ AJsuited, KQsuited, TT, 99
+    *   Late: ATsuited AJ KJsuited 88
+*   The above is for tight play.  Add more hands for loose play
+
+
+*   Betting strategy
+    *   Bet 4 BB pre-flop, plus 1 BB for every "limper" (player who calls BB) before you
+    *   bet 75% to 100% of pot size after flop
+
+
+*   Size of stack affects strategy:
+    *   Small stack is less than 25 blinds
+        *   Play tight, stick to the best hands only
+    *   Mid stack is 25 to 80 blinds
+        *   Don't play small pairs or suited connectors as much
+    *   big stack is greater than 80 blinds
+        *   Play wider range of hands, consider raising more (5 BB pre flop for instance)
+
+*   Gambits
+    *   Float play
+        *   Meant as a counter to Cbetting
+        *   Check opponent's Cbet with the intention of betting or raising on the turn
+        *   Must be heads-up with opponent (1v1)
+        *   Should have position over opponent (i.e. they act first)
+        *   Have a good hand and/or room to improve
+    *   Check raise
+        *   check after flop, then raise 3 to 3.5 times bet of player who bets after you
+        *   Should be done if first after flop or no one has bet before you
+        *   Should be done with a good (but not great) hand or on a straight/flush draw - goal is to make opponent fold rather than let them see the next street
+    *   Bluffing
+        *   Should be done rarely, and only when situation is right
+        *   Your last action should have been strong
+        *   Your opponent's last action shoudl have been week
+        *   You should have position over your opponent (i.e. play after them)
+        *   Better to bluff small pots than large ones to reduce risk of losing too much money
+        *   Bluffing on the flop is typically better than bluffing on the river, unless you have played strong all the way to that point
+
+    *   Cbet (continuation bet)
+        *   Make a raise pre-flop, and then bet again on flop regardless of cards
+        *   Bet 75 to 100% of the pot
+        *   Hand doesn't have to be great, but should have potential
+        *   Definitely Cbet if you flopped a strong hand
+        *   Can Cbet almost every time
+
+*   Pot odds
+    *   Calculating pot odds can be easy, but probably easier to run a monte carlo simulation and use the win rate rather than calculating the odds of drawing a particular scenario
+    *   Deciding whether to call or not:
+        *   Estimate the odds of winning the hand using a MC simulation
+        *   Compare the size of the bet to the size of the pot:
+            *   Divide bet size by total size of pot (pot + bet)
+        *   If probability of winning is higher than pot odds then call, otherwise fold
+
+*   Positioning (Pre-flop)
+    *   Early position (worse to better)
+        *   UTG (third after flop, first pre-flop)
+        *   UTG + 1
+        *   UTG + 2
+    *   Mid position (worse to better)
+        *   UTG + 3
+        *   UTG + 4
+        *   UTG + 5
+        *   UTG + 6
+    *   Late position (worse to best)
+        *   Dealer button (last after flop, third-to-last pre-flop)
+        *   Small blind (first after flop, second-to-last pre-flop)
+        *   Big Blind (second after flop, last pre-flop)
+        
+*   Positioning (Post-flop)
+    *   Early position (worst to better)
+        *   Small blind (first after flop, second-to-last pre-flop)
+        *   Big Blind (second after flop, last pre-flop)
+        *   UTG (third after flop, first pre-flop)
+        *   UTG + 1
+    *   Mid position (best to worst)
+        *   UTG + 4
+        *   UTG + 3
+        *   UTG + 2
+    *   Late position (best to worst)
+        *   Dealer button (last after flop, third-to-last pre-flop)
+        *   UTG + 6
+        *   UTG + 5
+    *   These positions will change strength as players are eliminated or fold
+    *   There is also relative positioning to consider, as a cbet after the flop can effectively start action at a new position
+    *   Determine positioning by counting how many players between current position and player who raised/bet, and how many players after current position but before position of betting player.
+
+*   Overall heuristic strategy:
+    *   Pre-flop
+        *   Use positioning and stack size to determine list of acceptable hands to play
+        *   Raise 4BB + 1 BB per limper if opportunity to first raise, so a 5BB bet minimum (1 BB call + 4 BB raise)
+            *   If better hand and stronger position maybe have normal distribution?
+        *   Call/reraise based on hand strength and position.  Maybe have a list of good cards and positions and then a RNG to make the decision?
+    *   Post-flop
+        *   Calculating raise
+            *   Reverse pot odds decision-making process and assume a ratio of 1 for win % / pot odds
+            *   bet = (win% * pot size) / (1 - win%)
+            *   If bet is less than 75% of pot size then check
+            *   If bet is more than 100% of pot size then use normal distribution centered at 100% of pot size with 1 SD = (bet size - pot size) / 3
+            *   Round to nearest BB and make sure chip stack is suffficient!
+            *   Also make sure it exceeds min raise
+        *   Deciding to call or fold:
+            *   Calculate pot odds and run MC simulation for chance to win
+            *   Divide chance to win by pot odds
+            *   If ratio is >= 1, then call
+            *   If ratio is < 1, then run a uniform RNG between 0 and 1
+                *   If the random number is <= ratio then call, otherwise fold
+
+## Acknowledgements
+
+Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.
+
+## References
 
 [1] http://randomprobabilities.net/texas-holdem.php
 
-[2] https://www.pokerlistings.com/strategy/playing-tight-how-it-makes-your-decisions-easier
-
-Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.
+[2] https://www.thepokerbank.com/guide/

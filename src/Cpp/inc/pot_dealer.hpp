@@ -29,7 +29,7 @@ public:
     void add_chips(unsigned chips, unsigned player_idx, constants::Round rnd);
     unsigned get_chip_count();
     unsigned get_total_player_bets(int player_idx) const;
-    unsigned get_player_bets_by_round(unsigned player_idx, constants::Round rnd) const;
+    unsigned get_player_bets_by_round(int player_idx, constants::Round rnd) const;
 private:
     // Friends
     friend TexasHoldEm;

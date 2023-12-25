@@ -77,17 +77,56 @@ void execute_test(const T test)
 
 /* Test Fixtures
 ******************************************************************************/
-struct test_pocket_rockets_2player
+struct test_pocket_cards_struct
 {
-    std::string test_desc = "test_pocket_rockets_2player...";
-    int seed = 0;
+    // Constructor
+    test_pocket_cards_struct(
+        int num_players,
+        std::string test_desc,
+        Card c1,
+        Card c2,
+        size_t num_runs = 1000,
+        int seed = 0) :
+        num_players(num_players),
+        test_desc(test_desc),
+        c1(c1),
+        c2(c2),
+        num_runs(num_runs),
+        seed(seed)
+    {
+        starting_hand.push_back(c1);
+        starting_hand.push_back(c2);
+    }
+    // Data Members
     int num_players = 2;
+    std::string test_desc;
+    // Hole cards
+    Card c1;
+    Card c2;
+    // Flop cards
+    // Turn Card
+    // River Card
+    size_t num_runs = 1000;
+    int seed = 0;
+    std::vector<Card> starting_hand;
+    double max_prob = -1;
+    double min_prob = -1;
+};
+
+struct test_flop_4player1
+{
+    std::string test_desc = "test_flop_4player1...";
+    int seed = 0;
+    int num_players = 4;
     size_t num_runs = 1000;
     std::vector<Card> starting_hand = {
     // Hole cards
-    Card(constants::Suit::Diamond, constants::Rank::Ace),
     Card(constants::Suit::Spade, constants::Rank::Ace),
+    Card(constants::Suit::Spade, constants::Rank::King),
     // Flop cards
+    Card(constants::Suit::Diamond, constants::Rank::Nine),
+    Card(constants::Suit::Spade, constants::Rank::Seven),
+    Card(constants::Suit::Club, constants::Rank::Jack),
     // Turn Card
     // River Card
     };
@@ -95,17 +134,20 @@ struct test_pocket_rockets_2player
     double min_prob = -1;
 };
 
-struct test_pocket_rockets_10player
+struct test_flop_4player2
 {
-    std::string test_desc = "test_pocket_rockets_10player...";
+    std::string test_desc = "test_flop_4player2...";
     int seed = 0;
-    int num_players = 10;
+    int num_players = 4;
     size_t num_runs = 1000;
     std::vector<Card> starting_hand = {
     // Hole cards
-    Card(constants::Suit::Diamond, constants::Rank::Ace),
     Card(constants::Suit::Spade, constants::Rank::Ace),
+    Card(constants::Suit::Spade, constants::Rank::King),
     // Flop cards
+    Card(constants::Suit::Diamond, constants::Rank::Nine),
+    Card(constants::Suit::Spade, constants::Rank::Seven),
+    Card(constants::Suit::Club, constants::Rank::King),
     // Turn Card
     // River Card
     };
@@ -132,4 +174,46 @@ struct test_royal_flush_10player
     };
     double max_prob = 100;
     double min_prob = 100;
+};
+
+struct test_straight_draw_4player_1000runs
+{
+    std::string test_desc = "test_straight_draw_4player_1000runs...";
+    int seed = 0;
+    int num_players = 4;
+    size_t num_runs = 1000;
+    std::vector<Card> starting_hand = {
+    // Hole cards
+    Card(constants::Suit::Spade, constants::Rank::Jack),
+    Card(constants::Suit::Spade, constants::Rank::Queen),
+    // Flop cards
+    Card(constants::Suit::Diamond, constants::Rank::Ten),
+    Card(constants::Suit::Spade, constants::Rank::Seven),
+    Card(constants::Suit::Club, constants::Rank::King),
+    // Turn Card
+    // River Card
+    };
+    double max_prob = -1;
+    double min_prob = -1;
+};
+
+struct test_straight_draw_4player_10000runs
+{
+    std::string test_desc = "test_straight_draw_4player_10000runs...";
+    int seed = 0;
+    int num_players = 4;
+    size_t num_runs = 10000;
+    std::vector<Card> starting_hand = {
+    // Hole cards
+    Card(constants::Suit::Spade, constants::Rank::Jack),
+    Card(constants::Suit::Spade, constants::Rank::Queen),
+    // Flop cards
+    Card(constants::Suit::Diamond, constants::Rank::Ten),
+    Card(constants::Suit::Spade, constants::Rank::Seven),
+    Card(constants::Suit::Club, constants::Rank::King),
+    // Turn Card
+    // River Card
+    };
+    double max_prob = -1;
+    double min_prob = -1;
 };

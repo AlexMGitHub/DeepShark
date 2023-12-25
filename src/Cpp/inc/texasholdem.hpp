@@ -34,7 +34,8 @@ public:
         int num_players = 10,
         int random_seed = 0,
         int tournament_number = 0,
-        bool debug = false) :
+        bool debug = false,
+        int num_games_per_blind_level = 30) :
         player_ai_types(player_ai_types),
         initial_num_players(num_players),
         num_players(num_players),
@@ -42,7 +43,8 @@ public:
         rng(random_seed),
         dealer(rng),
         tournament_number(tournament_number),
-        debug(debug)
+        debug(debug),
+        num_games_per_blind_level(num_games_per_blind_level)
     {
         assert((num_players >= 2 && num_players <= 10) &&
             "Number of players must be between 2 and 10!");
@@ -76,6 +78,7 @@ public:
     std::string filename;
     size_t mc_total_runs = 0;
     size_t mc_run_wins = 0;
+    int num_games_per_blind_level;
     // Member Functions
     void begin_tournament();
     void begin_test_game(TestCase tc);
@@ -91,6 +94,9 @@ private:
     int m_button_idx = 0;  // Dealer button
     int m_sb_idx = 1;  // Small blind
     int m_bb_idx = 2;  // Big blind
+    int m_start_action = 0;
+    constants::Round m_round = constants::Round::Pre_Flop;
+    int m_adjusted_num_players = constants::MAX_PLAYER_COUNT;
     TestCase m_test_case;
     GameHistory game_hist;
     TournamentHistory tourn_hist;
@@ -108,7 +114,7 @@ private:
     void m_betting_loop(GameState& gs, int starting_player);
     void m_determine_legal_actions(GameState& gs, int plyr_idx);
     void m_validate_player_action(GameState& gs, int plyr_idx);
-    bool m_is_betting_over(GameState& gs) const;
+    bool m_is_betting_over(GameState& gs);
     void m_move_blinds();
     void m_update_game_state(GameState& gs);
     int m_get_num_active_players() const;
@@ -122,4 +128,5 @@ private:
     void m_load_mc_deck(GameState gs);
     void m_build_partial_deck(std::vector<Card> exclude);
     void m_build_mc_deck(std::vector<Card> starting_hand);
+    int m_blind_level();
 };

@@ -43,7 +43,7 @@ unsigned Pot::get_chip_count()
     return m_chip_count;
 }
 
-unsigned Pot::get_player_bets_by_round(unsigned player_idx, Round rnd) const
+unsigned Pot::get_player_bets_by_round(int player_idx, Round rnd) const
 {
     /**
      * Return the total chips bet by the player in the specified betting round.

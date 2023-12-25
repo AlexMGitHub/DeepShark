@@ -172,7 +172,7 @@ void Hand::determine_best_hand()
      * Determines best five card poker hand from available cards.
     */
     m_sort_cards();
-    if (available_cards.size() == 2)
+    if (available_cards.size() <= 2)
     {
         best_hand = { available_cards[0],
             available_cards[1],

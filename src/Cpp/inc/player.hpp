@@ -79,16 +79,33 @@ public:
     void player_act(GameState& gs) override;
 };
 
-// class PersonalityAI : public PlayerAI
-// {
-// public:
-//     // Constructors
-//     PersonalityAI(std::mt19937& rng) : PlayerAI(rng) {}
-//     // Data Members
-//     int confidence_level;
-//     // Member Functions
-//     void assess_confidence(GameState& gs);
-// };
+class HeuristicAI : public PlayerAI
+{
+public:
+    // Constructors
+    HeuristicAI(std::mt19937& rng,
+        constants::PlayStyle play_style) :
+        PlayerAI(rng),
+        play_style(play_style)
+    {}
+    // Data Members
+    constants::PlayStyle play_style;
+    constants::Position player_position;
+    constants::Position hand_position;
+    // Member Functions
+    constants::Position assess_hole_cards(GameState& gs);
+    constants::Position assess_player_position(GameState& gs);
+    double run_mc_sim(int sim_num_players, GameState& gs, int num_runs = 1000);
+    std::vector<Card> create_starting_hand(GameState& gs);
+    void player_act(GameState& gs) override;
+    unsigned compute_bet(double win_perc, GameState& gs, double ratio = 1.0);
+    unsigned round_bet(double bet);
+    void check_or_fold(GameState& gs);
+private:
+    // Data Members
+    std::uniform_real_distribution<> m_uniform_dist =
+        std::uniform_real_distribution<>(0.0, 1.0);
+};
 
 /* Player Declarations
 ******************************************************************************/
