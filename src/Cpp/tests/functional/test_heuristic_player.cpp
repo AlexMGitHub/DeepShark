@@ -1,5 +1,5 @@
 /******************************************************************************
-* Test functionality of playback and serialization.
+* Test functionality of the heuristic player AI.
 ******************************************************************************/
 
 /* Headers
@@ -34,9 +34,9 @@ int main()
         player_ai_types.push_back(AI_Type::Heuristic_TAG);
         player_ai_types.push_back(AI_Type::Heuristic_LAG);
     }
-    int seed = 0;
-    int tournament_num = 0;
-    bool debug = true;
+    int seed = 7;
+    int tournament_num = 7;
+    bool debug = false;
     int num_games_per_blind_level = 20;
     // Instantiate THE object and begin tournament
     TexasHoldEm the(

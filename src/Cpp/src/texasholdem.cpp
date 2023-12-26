@@ -416,16 +416,21 @@ void TexasHoldEm::m_end_game(GameState gs)
     if (num_players == 1 && !(m_test_game || m_monte_carlo_game))
     {
         m_tournament_completed = true;
-        cout << "Tournament is complete!" << endl;
+        //cout << "Tournament " << tournament_number << " is complete!" << endl;
         int winner_idx = gs.showdown_players[0].player_idx;
         tourn_hist.finishing_order.push_back(winner_idx);
         tourn_hist.game_eliminated.push_back(game_hist.game_number);
         std::filesystem::create_directory("recorded_games/" + get_date());
-        filename = "recorded_games/" + get_date() +
+        if (tourn_directory != "")
+        {
+            std::filesystem::create_directory("recorded_games/" + get_date() +
+                "/" + tourn_directory);
+        }
+        filename = "recorded_games/" + get_date() + "/" + tourn_directory +
             "/tourn_" + std::to_string(tournament_number) + "__" +
             create_timestamp() + ".bin";
         write_tournamenthistory(filename, tourn_hist);
-        cout << "Write tournament history successful!" << endl;
+        //cout << "Write tournament " << tournament_number << " successful!" << endl;
         return;
     }
     // All players return their cards

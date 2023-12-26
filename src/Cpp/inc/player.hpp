@@ -46,7 +46,6 @@ public:
     void player_act(GameState& gs) override;
 private:
     // Data Members
-    int m_distribution_max;
     std::uniform_int_distribution<> m_uniform_dist;
     // Member Functions
     void m_set_distribution_max(int max);

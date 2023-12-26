@@ -106,11 +106,7 @@ void RandomAI::m_set_distribution_max(int max)
      * @param max is the maximum integer value of the uniform distribution.
      * @return Replace the data member with a new uniform distribution.
     */
-    if (max != m_distribution_max)
-    {
-        m_uniform_dist = std::uniform_int_distribution<>(0, max);
-        m_distribution_max = max;
-    }
+    m_uniform_dist = std::uniform_int_distribution<>(0, max);
 }
 
 /* ScriptedAI Method Definitions
@@ -313,8 +309,15 @@ void HeuristicAI::player_act(GameState& gs)
                     {
                         if (gs.max_bet > gs.chips_to_call)
                         {
-                            gs.player_bet = gs.chips_to_call;  // Weaker hand and position
-                            gs.player_action = Action::Call;
+                            if (legal_act(Action::Call, gs))
+                            {
+                                gs.player_bet = gs.chips_to_call;  // Weaker hand and position
+                                gs.player_action = Action::Call;
+                            }
+                            else
+                            {
+                                check_or_fold(gs);
+                            }
                         }
                         else
                         {
@@ -367,8 +370,15 @@ void HeuristicAI::player_act(GameState& gs)
                     {
                         if (gs.max_bet > gs.chips_to_call)
                         {
-                            gs.player_bet = gs.chips_to_call;  // Weaker hand and position
-                            gs.player_action = Action::Call;
+                            if (legal_act(Action::Call, gs))
+                            {
+                                gs.player_bet = gs.chips_to_call;  // Weaker hand and position
+                                gs.player_action = Action::Call;
+                            }
+                            else
+                            {
+                                check_or_fold(gs);
+                            }
                         }
                         else
                         {
@@ -531,10 +541,17 @@ void HeuristicAI::player_act(GameState& gs)
     {
         if (ratio * ratio > rand_num)
         {
-            if (gs.chips_to_call < gs.max_bet)
+            if (gs.max_bet > gs.chips_to_call)
             {
-                gs.player_action = Action::Call;
-                gs.player_bet = gs.chips_to_call;
+                if (legal_act(Action::Call, gs))
+                {
+                    gs.player_bet = gs.chips_to_call;  // Weaker hand and position
+                    gs.player_action = Action::Call;
+                }
+                else
+                {
+                    check_or_fold(gs);
+                }
             }
             else
             {

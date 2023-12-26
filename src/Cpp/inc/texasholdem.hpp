@@ -35,7 +35,8 @@ public:
         int random_seed = 0,
         int tournament_number = 0,
         bool debug = false,
-        int num_games_per_blind_level = 30) :
+        int num_games_per_blind_level = 30,
+        std::string tourn_directory = "") :
         player_ai_types(player_ai_types),
         initial_num_players(num_players),
         num_players(num_players),
@@ -44,7 +45,8 @@ public:
         dealer(rng),
         tournament_number(tournament_number),
         debug(debug),
-        num_games_per_blind_level(num_games_per_blind_level)
+        num_games_per_blind_level(num_games_per_blind_level),
+        tourn_directory(tourn_directory)
     {
         assert((num_players >= 2 && num_players <= 10) &&
             "Number of players must be between 2 and 10!");
@@ -79,6 +81,7 @@ public:
     size_t mc_total_runs = 0;
     size_t mc_run_wins = 0;
     int num_games_per_blind_level;
+    std::string tourn_directory;
     // Member Functions
     void begin_tournament();
     void begin_test_game(TestCase tc);
