@@ -3,7 +3,39 @@
 
 The name of the project, DeepShark, is a compounding of the phrases "deep learning" and "card shark."  Deep learning refers to machine learning methods that utilize artificial neural network architectures, while a "shark" is slang for a highly skilled poker player.  I would like to train an ANN to play poker well, hence DeepShark.
 
-### Description of Poker Environment
+### Development Environment
+DeepShark was developed using Windows Subsystem for Linux (WSL) with an Ubuntu image.  The reported g++ compiler version used for the C++ code is:
+
+`g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0`
+
+There is some non-portable code (e.g. system("clear") to clear the terminal) that will not run in a non-Linux environment.
+
+I wrote the Python code using Python 3.11.5.  A *requirements.txt* file is included for convenience.
+
+## Description of the Poker Environment
+
+The Texas Hold 'Em poker environment runs a poker tournament with up to 10 players at the table.  The tournament has a blinds schedule that increases the size of the blinds after a user-specified number of games.  This replicates the effect of time-based blinds schedules that are used in real poker tournaments to prevent tournaments from dragging on too long.
+
+I created a struct that stores the current game state, and this game state is passed along from function to function and modified as the players progress through the various betting rounds.  The game state structs for a particular game are stored in another game history struct, and when the game is over the game history struct is stored in a tournament history struct.  In this way the environment stores every state of every game played during the tournament.  I wrote a serialization routine to write the contents of the tournament history to a binary file and save it to disk.
+
+Texas Hold 'Em is a relatively simple game, but there are three areas that were tricky to implement:
+
+1.  Determining each player's best five-card poker hand from the available cards
+
+2.  Determining when the betting round has ended, particularly if betting can continue after a player has gone all-in
+
+3.  Determining the winner of the game and accounting for ties and side pots
+
+I wrote both unit tests and functional tests that helped me catch many bugs in the above functionality.  I also wrote a user interface using @p-ranav's [tabulate](https://github.com/p-ranav/tabulate) table maker library.  The user interface allowed me to watch each game play out action-by-action, which was useful for debugging the game environment code.  It's also useful for playing back deserialized games that have been recorded to disk.
+
+### Implementing the Game Environment in C++
+I wrote the Texas Hold 'Em game loop in C++.  My previous deep reinforcement project [Checkers-MCTS](https://github.com/AlexMGitHub/Checkers-MCTS) was written entirely in Python, and the slow performance of the checkers game environment became an issue when generating training data.  I experimented with using the `ctypes` Python library to run C functions from Python scripts for my [PyCEM](https://github.com/AlexMGitHub/PyCEM) FDTD simulator, which provided the speed of the C language with the convenience of writing the user interface in Python.
+
+The PyCEM experiment with `ctypes` was a success, but I ran into issues getting C to do what I wanted it to do.  I appreciated the performance and control provided by the C language, but I was frustrated by its quirks and lack of high-level language features.  "Modern" C++ appeared to be the best of both worlds: the performance of C with a standard library that provides many high-level language features.  The `ctypes` Python library is not compatible with C++, but because C++ is essentially a superset of C it is possible to work around this limitation.
+
+I compiled a shared library of the poker game loop that was written using C++ code, but I created C wrapper functions to interface with `ctypes`.  This is done by using the `extern "C"` specification when declaring the wrapper functions in the C++ header file.  This specification prevents the C++ compiler from engaging in "name mangling" which is used in C++ to support function overloading.  The wrapper functions must only use "Plain Old Data" (POD) - that is, basic C data types - as the return type and argument types in the declaration.  However, the bodies of these wrapper functions can use C++ code.
+
+The performance of the game environment in C++ is impressive.  I wrote a player AI that runs a 1000-game Monte Carlo simulation every time it makes a decision post-flop.  Even so, a 10-player tournament with hundreds of games only takes seconds to run.  I also used multithreading in C++ to run multiple tournaments in parallel.  With four parallel threads it only takes about three minutes to simulate 100 poker tournaments.
 
 ### Initial "Dumb" AI Players
 I needed to be able to test the poker environment to ensure that the game rules were properly implemented.  I did this by writing "dumb" (i.e. hard-coded) AI player classes to play out poker games.  The first "AI" that I created was a purely random player who would randomly choose from the list of legal actions.  If the chosen action was a bet or raise, the AI would randomly choose a value between the minimum bet and the maximum value of its chip stack.
@@ -16,19 +48,28 @@ I called this class of dumb AIs the "heuristic" AI, as I used some basic poker r
 
 The Monte Carlo simulation adds a stochastic element to the AI's decision making as I used the resulting expected win probability in combination with pot odds to determine the player's action.  The pot odds are calculated as the ratio of the chips required to call the bet divided by the total amount of chips in the pot assuming that you call.  If the expected win percentage is larger than the pot odds, then it is worth calling as in the long-run you are expected to win more money than you would lose.  The pot odds are the ratio of the amount of money the player is risking by calling the bet to the amount of money the player could potentially win.  Intuitively, if the pot odds are small then we are risking a relatively small amount of money to win a lot of money.  The smaller the pot odds (as a percentage) and the larger the probability of winning, the stronger the player's position.  
 
-For situations where the pot odds and win probability are nearly equal, I used a uniform distribution to add further stochasticity to the player's decision making.  For example, if the ratio of the probability of winning to the pot odds is greater than a uniform random number between 0 and 1, then the player calls.  Otherwise the player checks or folds.  This prevents the AI from always folding to big bluffs, but still gives a probability of folding proportionate to how weak the hand is.  The expected result is a player AI that will typically make reasonable decisions based on the strength of its current hand, but can unpredictably take actions such as bluffing on a weak hand, slow playing a strong hand, calling another player's bluff, etc.
+For situations where the pot odds and win probability are nearly equal, I used a uniform distribution to add further stochasticity to the player's decision making.  For example, if the ratio of the probability of winning to the pot odds is greater than a uniform random number between 0 and 1, then the player calls.  Otherwise the player checks or folds.  This prevents the AI from always folding to big bluffs, but still gives a probability of folding proportionate to how weak the hand is.  The expected result is a player AI that will typically make reasonable decisions based on the strength of its current hand, but can unpredictably take actions such as bluffing on a weak hand, calling another player's bluff, etc.
+
+## Deep Reinforcement Learning
 
 ### Considerations for Neural Network Architecture
-One point of consideration is whether the neural network architecture ought to be some sort of recurrent neural network or other configuration that remembers previous states.
+One point of consideration is whether the neural network architecture ought to be some sort of recurrent neural network that remembers previous states.
 
-Without memory, the neural network will essentially just be learning how strong a particular poker hand is.  This functionality could be easily reproduced by a look-up table.  An ANN with memory of previous states could identify player behavior patterns.  Poker playing styles tend to fall along a two-axis spectrum: players can be "tight" or "loose" and "aggressive" or "passive."  The resulting four quadrants describe play styles that could be identified and exploited by an opponent.  For instance, a loose and aggressive play style describes a player who plays a wide range of starting hands and bets aggressively - which means that they are often bluffing.  An observant opponent might notice this tendency to play weak hands and bluff, and be more likely to call their raises.  Similarly, a tight and aggressive player will only play a narrow range of hands and will bet aggressively when he has good cards.  An observant player would be less likely to call their bets as they probably aren't bluffing.
+Without memory, the neural network will essentially just be learning how strong a particular poker hand is.  This functionality could be easily reproduced by a look-up table.  An ANN with memory of previous states could identify player behavior patterns.  Poker playing styles tend to fall along a two-axis spectrum: players can be "tight" or "loose" and "aggressive" or "passive."  The resulting four quadrants describe play styles that could be identified and exploited by an opponent.  For instance, a loose and aggressive play style describes a player who plays a wide range of starting hands and bets aggressively - which means that they are often bluffing.  An observant opponent might notice this tendency to play weak hands and bluff, and be more likely to call their raises.  Similarly, a tight and aggressive player will only play a narrow range of hands and will bet aggressively when he has good cards.  An observant player would be less likely to call their bets as they probably aren't bluffing, and may be able to steal blinds if the player is too tight.
 
-### Development Environment
-DeepShark was developed using Windows Subsystem for Linux (WSL) with an Ubuntu image.  The reported g++ compiler version used for the C++ code is:
+### Converting the C++ Game State to a Neural Network Input
 
-`g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0`
+## Acknowledgements
 
-There is some non-portable code (e.g. system("clear") to clear the terminal) that will not run in a non-Linux environment.
+Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.
+
+## References
+
+[1] http://randomprobabilities.net/texas-holdem.php
+
+[2] https://www.thepokerbank.com/guide/
+
+[3] [PokerStrategy](https://www.pokerstrategy.com/strategy/live-poker/how-blinds-increase-structure/)
 
 ## Appendices
 
@@ -50,7 +91,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
     *   The big blind is twice the value of the small blind
     *   Blinds are considered the first bet of the game, and so the next bet during the pre-flop is actually a raise
     *   The maximum buy-in is the maximum number of chips that the player is allowed to bring to the table, and it is calculated as 100 times the initial big blind value
-    *   The value of the blinds increase as the poker tournament continues.  The structure of this increase depends on how fast you want the game to go, and I used this suggested structure from [PokerStrategy](https://www.pokerstrategy.com/strategy/live-poker/how-blinds-increase-structure/) to increase the blind value after a user-defined number of games played
+    *   The value of the blinds increase as the poker tournament continues.  The structure of this increase depends on how fast you want the game to go, and I used this suggested structure from [3] to increase the blind value after a user-defined number of games played
     *   If a player cannot afford the blind they are automatically put all-in
 
 *   The dealer deals hole cards starting with the first player to his left - the small blind.  
@@ -197,25 +238,15 @@ The following is a partial list of rules that are specific to the No Limit Texas
                 *   If the random number is <= ratio then call, otherwise fold
 
 ## Appendix C: Notes
-I received an error when trying to run the C shared library from a Jupyter notebook with Clib:
+I received an error when trying to run the C shared library from Python with Clib:
 
 `libstdc++.so.6: version GLIBCXX_3.4.30' not found`
 
 I found a [forum post](https://askubuntu.com/questions/1418016/glibcxx-3-4-30-not-found-in-conda-environment) that indicated that the lib file needed to be linked into the Conda environment.  The command below worked for me:
 
-`ln -sf /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /home/alex/miniconda3/envs/pythoncpp/lib/libstdc++.so.6`
+`ln -sf /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /home/{$user}/miniconda3/envs/${env}/lib/libstdc++.so.6`
 
 Where:
 
-`alex` is my Ubuntu username
-`pythoncpp` was the Conda environment I was using at the time
-
-## Acknowledgements
-
-Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.
-
-## References
-
-[1] http://randomprobabilities.net/texas-holdem.php
-
-[2] https://www.thepokerbank.com/guide/
+`${user}` is the Ubuntu username
+`${env}` is the Conda environment name
