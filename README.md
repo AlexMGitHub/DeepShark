@@ -196,6 +196,20 @@ The following is a partial list of rules that are specific to the No Limit Texas
             *   If ratio is < 1, then run a uniform RNG between 0 and 1
                 *   If the random number is <= ratio then call, otherwise fold
 
+## Appendix C: Notes
+I received an error when trying to run the C shared library from a Jupyter notebook with Clib:
+
+`libstdc++.so.6: version GLIBCXX_3.4.30' not found`
+
+I found a [forum post](https://askubuntu.com/questions/1418016/glibcxx-3-4-30-not-found-in-conda-environment) that indicated that the lib file needed to be linked into the Conda environment.  The command below worked for me:
+
+`ln -sf /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /home/alex/miniconda3/envs/pythoncpp/lib/libstdc++.so.6`
+
+Where:
+
+`alex` is my Ubuntu username
+`pythoncpp` was the Conda environment I was using at the time
+
 ## Acknowledgements
 
 Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate) table maker library.  I've included copies of his licenses in my repository along with the single header file version of his code.

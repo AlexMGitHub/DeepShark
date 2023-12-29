@@ -285,7 +285,7 @@ void write_gamehistory(std::ofstream& fs, GameHistory& gh)
     }
 }
 
-TournamentHistory read_tournamenthistory(string filename)
+TournamentHistory read_tournamenthistory(string filename, bool summary)
 {
     TournamentHistory th;
     std::ifstream fs(filename, std::ios::in | std::ios::binary);
@@ -309,9 +309,13 @@ TournamentHistory read_tournamenthistory(string filename)
             sizeof(th.game_eliminated[0]) * th.initial_player_count);
 
         fs.read(reinterpret_cast<char*>(&th.num_games), sizeof th.num_games);
-        for (size_t i = 0; i < th.num_games; i++)
+
+        if (!summary)  // For Python code to get summary of tourament results
         {
-            th.games.push_back(read_gamehistory(fs));
+            for (size_t i = 0; i < th.num_games; i++)
+            {
+                th.games.push_back(read_gamehistory(fs));
+            }
         }
     }
     fs.close();

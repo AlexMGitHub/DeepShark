@@ -401,7 +401,14 @@ void HeuristicAI::player_act(GameState& gs)
                 player_position > Position::Early &&
                 gs.chips_to_call <= 0.1 * gs.max_bet)
             {
-                gs.player_action = Action::Re_Raise;
+                if (legal_act(Action::Re_Raise, gs))
+                {
+                    gs.player_action = Action::Re_Raise;
+                }
+                else
+                {
+                    gs.player_action = Action::Raise;
+                }
                 gs.player_bet = gs.chips_to_call + gs.min_to_raise;
             }
             else

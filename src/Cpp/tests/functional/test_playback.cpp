@@ -27,12 +27,26 @@ int main()
 {
     // THE constructor arguments
     int num_players = 10;
-    vector<AI_Type> player_ai_types(num_players, AI_Type::Random);
-    int seed = 12;
+    //vector<AI_Type> player_ai_types(num_players, AI_Type::Random);
+    vector<AI_Type> player_ai_types;
+    for (int i = 0; i < num_players; i += 2)
+    {
+        player_ai_types.push_back(AI_Type::Heuristic_TAG);
+        player_ai_types.push_back(AI_Type::Heuristic_LAG);
+    }
+    int num_games_per_blind_level = 20;
+    int seed = 87;
     int tournament_num = seed;
     bool debug = false;
     // Instantiate THE object and begin tournament
-    TexasHoldEm the(player_ai_types, num_players, seed, tournament_num, debug);
+    TexasHoldEm the(
+        player_ai_types,
+        num_players,
+        seed,
+        tournament_num,
+        debug,
+        num_games_per_blind_level
+    );
     the.begin_tournament();
     // Deserialize and playback recorded game
     //cout << std::filesystem::current_path() << endl;
