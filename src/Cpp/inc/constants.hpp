@@ -168,7 +168,8 @@ namespace constants
                 Scripted,
                 CheckCall,
                 Heuristic_TAG,
-                Heuristic_LAG
+                Heuristic_LAG,
+                Heuristic_MTAG
         };
 
         enum class TableSize : int
@@ -188,7 +189,8 @@ namespace constants
         enum class PlayStyle : int
         {
                 TAG,            // Tight aggressive style
-                LAG             // Loose aggressive style
+                LAG,            // Loose aggressive style
+                MTAG            // Modified tight aggressive style
         };
 
         enum class HoleCards

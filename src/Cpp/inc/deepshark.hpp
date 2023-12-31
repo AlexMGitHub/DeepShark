@@ -33,6 +33,7 @@ extern "C"
         int tournament_number;
         int random_seed;
         int initial_player_count;
+        int* player_ai_types;
         int* finishing_order;
         int* game_eliminated;
         size_t num_games;
@@ -76,6 +77,10 @@ struct tourn_data
             else if (int_player_ai_types[i] == 4)
             {
                 player_ai_types.push_back(constants::AI_Type::Heuristic_LAG);
+            }
+            else if (int_player_ai_types[i] == 5)
+            {
+                player_ai_types.push_back(constants::AI_Type::Heuristic_MTAG);
             }
             else
             {

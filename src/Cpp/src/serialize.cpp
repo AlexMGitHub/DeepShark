@@ -300,6 +300,10 @@ TournamentHistory read_tournamenthistory(string filename, bool summary)
         fs.read(reinterpret_cast<char*>(&th.random_seed), sizeof th.random_seed);
         fs.read(reinterpret_cast<char*>(&th.initial_player_count), sizeof th.initial_player_count);
 
+        th.player_ai_types.resize(th.initial_player_count);
+        fs.read(reinterpret_cast<char*>(&th.player_ai_types[0]),
+            sizeof(th.player_ai_types[0]) * th.initial_player_count);
+
         th.finishing_order.resize(th.initial_player_count);
         fs.read(reinterpret_cast<char*>(&th.finishing_order[0]),
             sizeof(th.finishing_order[0]) * th.initial_player_count);
@@ -335,6 +339,9 @@ void write_tournamenthistory(string filename, TournamentHistory& th)
         fs.write(reinterpret_cast<char*>(&th.tournament_number), sizeof th.tournament_number);
         fs.write(reinterpret_cast<char*>(&th.random_seed), sizeof th.random_seed);
         fs.write(reinterpret_cast<char*>(&th.initial_player_count), sizeof th.initial_player_count);
+
+        fs.write(reinterpret_cast<char*>(&th.player_ai_types[0]),
+            sizeof(th.player_ai_types[0]) * th.initial_player_count);
 
         fs.write(reinterpret_cast<char*>(&th.finishing_order[0]),
             sizeof(th.finishing_order[0]) * th.initial_player_count);

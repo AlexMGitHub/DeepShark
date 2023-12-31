@@ -134,6 +134,7 @@ struct TournamentHistory
     int tournament_number;
     int random_seed;
     int initial_player_count;
+    std::vector<constants::AI_Type> player_ai_types;
     std::vector<int> finishing_order;
     std::vector<int> game_eliminated;
     size_t num_games;

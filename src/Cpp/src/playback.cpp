@@ -207,6 +207,9 @@ string to_string(const constants::AI_Type& ai)
     case AI_Type::Heuristic_LAG:
         return "Heuristic_LAG";
         break;
+    case AI_Type::Heuristic_MTAG:
+        return "Heuristic_MTAG";
+        break;
     default:
         cout << "Invalid AI type for string conversion!" << endl;
         exit(-1);

@@ -1,7 +1,12 @@
 # DeepShark
+
+<p align="center">
+<img src="docs/img/DeepShark.jpg" title="DeepShark" alt="DeepShark" width="800"/>
+</p>
+
  A project to apply deep reinforcement learning to the game of Texas hold 'em poker.
 
-The name of the project, DeepShark, is a compounding of the phrases "deep learning" and "card shark."  Deep learning refers to machine learning methods that utilize artificial neural network architectures, while a "shark" is slang for a highly skilled poker player.  I would like to train an ANN to play poker well, hence DeepShark.
+The name of the project, DeepShark, is a compounding of the phrases "deep learning" and "card shark."  Deep learning refers to machine learning methods that utilize artificial neural network architectures, while a "shark" is slang for a highly skilled poker player.  I would like to train an ANN to play poker well, hence DeepShark.  The DeepShark image above was generated using Bing's AI image creator.
 
 ### Development Environment
 DeepShark was developed using Windows Subsystem for Linux (WSL) with an Ubuntu image.  The reported g++ compiler version used for the C++ code is:

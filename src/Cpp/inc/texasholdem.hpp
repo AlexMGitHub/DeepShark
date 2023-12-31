@@ -65,6 +65,7 @@ public:
         tourn_hist.initial_player_count = initial_num_players;
         tourn_hist.random_seed = random_seed;
         game_hist.game_number = 0;
+        tourn_hist.player_ai_types = player_ai_types;
     }
     // Data Members
     std::vector<constants::AI_Type> player_ai_types;

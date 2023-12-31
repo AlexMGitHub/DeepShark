@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>                  // For std::to_underlying()
 #include <vector>
 // Project headers
 #include "deepshark.hpp"
@@ -22,6 +23,7 @@
 using std::cout;
 using std::endl;
 using std::string;
+using std::to_underlying;
 using std::vector;
 using namespace constants;
 
@@ -120,6 +122,7 @@ void get_tournament_summary(struct tournament_summary* summary, char filename[])
 
     for (int i = 0; i < th.initial_player_count; i++)
     {
+        *(summary->player_ai_types + i) = to_underlying(th.player_ai_types[i]);
         *(summary->finishing_order + i) = th.finishing_order[i];
         *(summary->game_eliminated + i) = th.game_eliminated[i];
     }

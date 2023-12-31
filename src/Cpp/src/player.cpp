@@ -695,8 +695,8 @@ Position HeuristicAI::assess_hole_cards(GameState& gs)
         hole_card2.rank,
         cards_suit
     );
-// Map key assumes higher-ranked card is the first card of the tuple
-// Check to see which hole card has higher rank
+    // Map key assumes higher-ranked card is the first card of the tuple
+    // Check to see which hole card has higher rank
     if (hole_card1.rank < hole_card2.rank)
     {
         starting_hand = std::make_tuple(
@@ -729,6 +729,33 @@ Position HeuristicAI::assess_hole_cards(GameState& gs)
         if (LAG_STARTING_HANDS.contains(starting_hand))
         {
             return LAG_STARTING_HANDS.at(starting_hand);
+        }
+    }
+    else if (play_style == PlayStyle::MTAG)  // Modified tight aggressive
+    {
+        if (gs.num_players >= 7)
+        {
+            // Full Ring Table
+            if (FULL_RING_TAG_STARTING_HANDS.contains(starting_hand))
+            {
+                return FULL_RING_TAG_STARTING_HANDS.at(starting_hand);
+            }
+        }
+        else if (gs.num_players > 3)
+        {
+            // Short Handed Table
+            if (SHORT_HANDED_TAG_STARTING_HANDS.contains(starting_hand))
+            {
+                return SHORT_HANDED_TAG_STARTING_HANDS.at(starting_hand);
+            }
+        }
+        else
+        {
+            // Heads-up
+            if (LAG_STARTING_HANDS.contains(starting_hand))
+            {
+                return LAG_STARTING_HANDS.at(starting_hand);
+            }
         }
     }
     return Position::Not_Playable;
@@ -1052,6 +1079,9 @@ void Player::m_select_ai(std::mt19937& rng)
         break;
     case AI_Type::Heuristic_LAG:
         m_ai = make_shared<HeuristicAI>(rng, PlayStyle::LAG);
+        break;
+    case AI_Type::Heuristic_MTAG:
+        m_ai = make_shared<HeuristicAI>(rng, PlayStyle::MTAG);
         break;
     default:
         cout << "Invalid player AI!" << endl;

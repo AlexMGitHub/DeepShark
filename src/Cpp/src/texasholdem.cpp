@@ -525,11 +525,25 @@ void TexasHoldEm::m_determine_game_winner(GameState& gs)
         // emptied out and paid to the respective winners
         while (pot.m_chip_count > 0)
         {
+            if (static_cast<size_t>(winner_idx) >= gs.showdown_players.size())
+            {
+                // Money left in the pot after distributing side pots
+                // Edge case where player folded but paid more into the pot
+                // than the winners
+                for (int i = 0; i < gs.initial_num_players; i++)
+                {
+                    unsigned leftover_chips = pot.get_total_player_bets(i);
+                    pot.m_pay_to_winner(leftover_chips);
+                    full_player_list[i].win_chips(leftover_chips);
+                }
+                break;
+            }
             tie_count = 1;
             while (1)
             {
                 // Check to see if there is a tie for the strongest hand
-                if (gs.showdown_players[winner_idx] ==
+                if (static_cast<size_t>(winner_idx + tie_count) < gs.showdown_players.size() &&
+                    gs.showdown_players[winner_idx] ==
                     gs.showdown_players[winner_idx + tie_count])
                 {
                     tie_count++;
