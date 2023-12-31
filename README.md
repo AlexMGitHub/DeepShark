@@ -1,7 +1,7 @@
 # DeepShark
 
 <p align="center">
-<img src="docs/img/DeepShark.jpg" title="DeepShark" alt="DeepShark" width="800"/>
+<img src="docs/img/DeepShark.jpg" title="DeepShark" alt="DeepShark" width="600"/>
 </p>
 
  A project to apply deep reinforcement learning to the game of Texas hold 'em poker.
