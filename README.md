@@ -1,7 +1,7 @@
 # DeepShark
 
 <p align="center">
-<img src="docs/img/DeepShark.jpg" title="DeepShark" alt="DeepShark" width="800"/>
+<img src="docs/img/DeepShark.jpg" title="DeepShark" alt="DeepShark" width="600"/>
 </p>
 
  A project to apply deep reinforcement learning to the game of Texas hold 'em poker.
@@ -55,14 +55,79 @@ The Monte Carlo simulation adds a stochastic element to the AI's decision making
 
 For situations where the pot odds and win probability are nearly equal, I used a uniform distribution to add further stochasticity to the player's decision making.  For example, if the ratio of the probability of winning to the pot odds is greater than a uniform random number between 0 and 1, then the player calls.  Otherwise the player checks or folds.  This prevents the AI from always folding to big bluffs, but still gives a probability of folding proportionate to how weak the hand is.  The expected result is a player AI that will typically make reasonable decisions based on the strength of its current hand, but can unpredictably take actions such as bluffing on a weak hand, calling another player's bluff, etc.
 
+### Comparing Play Styles
+
+Poker playing styles tend to fall along a two-axis spectrum: players can be "tight" or "loose", and "aggressive" or "passive."  A loose play style describes a player who plays a wide range of starting hands.  A tight player plays a narrower range of strong starting hands.  Passive players tend to often check or call and rarely bet or raise large amounts, whereas aggressive players are the opposite.  
+
+I initially created two play styles for the heuristic AI: tight-aggressive (TAG) and loose-aggressive (LAG).  Passive play is considered to be a poor play style used by beginners - if you have a good hand it is almost always better to bet aggressively and force the other players to make hard choices.
+
+I compared the TAG and LAG players in more detail in the Jupyter notebook `heuristic_tournament_results.ipynb`.  In summary, the LAG players were much more likley to be eliminated early on in the tournament compared to the TAG players, but surprisingly a LAG player won the tournament more often than a TAG player.
+
+Out of 100 10-player tournaments with 5 LAG players and 5 TAG players in each, the LAGs won 52 of the tournaments and the TAGs won 48 tournaments:
+
+<p align="center">
+<img src="docs/img/lag_vs_tag.png" title="LAG vs. TAG" alt="LAG vs. TAG" width="552"/>
+</p>
+
+The horizontal axis of the above plot is labeled "Result."  A result of 10 means 10th place - being eliminated first.  A result of 1 means 1st place - winning the tournament.
+
+This indicated to me that the TAG player might be too tight.  As the number of players at the table dwindles, a wider array of starting hands become viable.  In addition, the blinds schedule increases the size of the blinds as the tournament continues, meaning that the price of folding viable starting hands becomes more prohibitive.
+
+To test my theory, I created a third play style called "Modified Tight-Aggressive" (MTAG) that played the same starting hands as the TAG player up until there were 3 or fewer players left in the tournament.  At that point the MTAG uses the same list of starting hands as the LAG.
+
+<p align="center">
+<img src="docs/img/play_style_comparison.png" title="Play Style Comparison Plot" alt="Play Style Comparison Plot" width="552"/>
+</p>
+
+The pattern seems to hold with all three play styles in one tournament.  The LAG players still tend to be eliminated early in the tournament, and yet the LAGs won exactly as many tournaments as the MTAGs.  The TAGs and MTAGs had very similar early-tournament performance, but the MTAG took home more tournament wins than the TAG.
+
+Overall, the MTAG appears to be a good compromise between the too-tight TAGs and the too-loose LAGs.
+
 ## Deep Reinforcement Learning
 
 ### Considerations for Neural Network Architecture
 One point of consideration is whether the neural network architecture ought to be some sort of recurrent neural network that remembers previous states.
 
-Without memory, the neural network will essentially just be learning how strong a particular poker hand is.  This functionality could be easily reproduced by a look-up table.  An ANN with memory of previous states could identify player behavior patterns.  Poker playing styles tend to fall along a two-axis spectrum: players can be "tight" or "loose" and "aggressive" or "passive."  The resulting four quadrants describe play styles that could be identified and exploited by an opponent.  For instance, a loose and aggressive play style describes a player who plays a wide range of starting hands and bets aggressively - which means that they are often bluffing.  An observant opponent might notice this tendency to play weak hands and bluff, and be more likely to call their raises.  Similarly, a tight and aggressive player will only play a narrow range of hands and will bet aggressively when he has good cards.  An observant player would be less likely to call their bets as they probably aren't bluffing, and may be able to steal blinds if the player is too tight.
+Without memory, the neural network will essentially just be learning how strong a particular poker hand is.  This functionality could be easily reproduced by a look-up table.  An ANN with memory of previous states could identify player behavior patterns.  As mentioned previously, poker playing styles fall along a two-axis spectrum of "tight" or "loose" and "aggressive" or "passive."  The resulting four quadrants describe play styles that could be identified and exploited by an opponent.  For instance, a loose and aggressive play style describes a player who plays a wide range of starting hands and bets aggressively - which means that they are often bluffing.  An observant opponent might notice this tendency to play weak hands and bluff, and be more likely to call their raises.  Similarly, a tight and aggressive player will only play a narrow range of hands and will bet aggressively when he has good cards.  An observant player would be less likely to call their bets as they probably aren't bluffing, and may be able to steal blinds if the player is too tight.
+
+### Mapping the Game State to a Neural Network Input
+
+*   Legal Actions
+    *   Vector of length 7 for 7 actions, 1 if action is legal 0 otherwise
+*   Hole Cards
+    *   Suit is one hot encoded (length 4)
+    *   Rank is one hot encoded (length 13)
+    *   All 0s for no suit/rank
+*   Flop Cards
+*   Turn Card
+*   River Card
+*   Chips to call
+    *   All chips represented as fraction of total chips at table
+    *   Divide by (initial_num_players * MAX_BUY_IN)
+*   Minimum Bet
+*   Maximum Bet (AKA chip count)
+*   Amount in pot total
+*   Amount in pot per player
+*   Position (blinds)
+*   Player hand rank
+*   Players remaining in tournament
+*   Active (unfolded) players
+*   Big blind amount?
+*   Player chip stack counts
+*   Current betting round?
+
+Outputs/ground truth:
+*   Chosen player action
+*   Bet amount
+*   Reward/Q-value
+
+Reward is calculated as the delta between the initial player chip count at the start of the game (before blinds) and the final player chip count, divided by total chips in the tournament to normalize (initial_num_players * MAX_BUY_IN).  Losing money will result in a negative reward, winning money in a positive reward, and folding without betting (or being a blind) will have a reward of zero.  This reward is applied to every state associated with that player during that game.
+
+Outputs: value head outputing Q-value (above calculation) and policy head outputing probability of each legal move
 
 ### Converting the C++ Game State to a Neural Network Input
+
+
 
 ## Acknowledgements
 
@@ -70,12 +135,14 @@ Thanks to @p-ranav for use of his [tabulate](https://github.com/p-ranav/tabulate
 
 ## References
 
-[1] http://randomprobabilities.net/texas-holdem.php
+1.  “Texas Hold’em Poker probabilities,” randomprobabilities.net.
+http://randomprobabilities.net/texas-holdem.php (accessed Jan. 02, 2024).
 
-[2] https://www.thepokerbank.com/guide/
+2.  “Texas Hold’em Guide | A Beginners Guide To Texas Hold’em,” www.thepokerbank.com. https://www.thepokerbank.com/guide/
 
-[3] [PokerStrategy](https://www.pokerstrategy.com/strategy/live-poker/how-blinds-increase-structure/)
+3.  “Strategy: Blind structure - how the blinds increase,” PokerStrategy.com, 2024. https://www.pokerstrategy.com/strategy/live-poker/how-blinds-increase-structure/ (accessed Jan. 02, 2024).
 
+‌
 ## Appendices
 
 ### Appendix A: Abbreviated No Limit Texas Hold 'Em Poker Rules
