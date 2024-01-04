@@ -45,19 +45,23 @@ for idx, x in enumerate(player_ai_types):
     #     player_ai_types[idx] = 5  # MTAG
     # else:
     #     player_ai_types[idx] = 3  # TAG
-    if idx in [0, 3, 6]:
-        player_ai_types[idx] = 3  # TAG
-    elif idx in [1, 4, 7]:
-        player_ai_types[idx] = 4  # LAG
-    elif idx in [2, 5, 8]:
+    # if idx in [0, 3, 6]:
+    #     player_ai_types[idx] = 3  # TAG
+    # elif idx in [1, 4, 7]:
+    #     player_ai_types[idx] = 4  # LAG
+    # elif idx in [2, 5, 8]:
+    #     player_ai_types[idx] = 5  # MTAG
+    # else:
+    #     player_ai_types[idx] = 3  # TAG
+    if idx == players - 1:
         player_ai_types[idx] = 5  # MTAG
     else:
-        player_ai_types[idx] = 3  # TAG
+        player_ai_types[idx] = 0  # Random
 
 # Number of games before increasing blind amount
 num_games_per_blind_level = ctypes.c_int(20)
 # Name of directory to store game results in
-directory = "mtag_lag_tag"
+directory = "random"
 b_directory = directory.encode("utf-8")  # create byte objects from the strings
 tourn_directory = ctypes.c_char_p(b_directory)
 # Number of tournaments to run

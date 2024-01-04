@@ -1,7 +1,7 @@
 # Ugly hack to ignore all files that lack extensions (such as executables)
-*
-!/**/
-!*.*
+# *
+# !/**/
+# !*.*
 
 # Package and IDE artifacts
 .vscode/
@@ -10,8 +10,20 @@
 *.o
 *.so
 
+# Libtorch library
+libtorch/
+
 # Binary files (recorded games)
 *.bin
 
 # Jupyter notebook checkpoint files
 .ipynb_checkpoints
+
+# Trained PyTorch models
+*.pt
+
+# CMake build directories
+build/
+
+# C++ executables
+**/bin/test_*

@@ -4,11 +4,12 @@
 <img src="docs/img/DeepShark.jpg" title="DeepShark" alt="DeepShark" width="600"/>
 </p>
 
- A project to apply deep reinforcement learning to the game of Texas hold 'em poker.
+## Overview
 
 The name of the project, DeepShark, is a compounding of the phrases "deep learning" and "card shark."  Deep learning refers to machine learning methods that utilize artificial neural network architectures, while a "shark" is slang for a highly skilled poker player.  I would like to train an ANN to play poker well, hence DeepShark.  The DeepShark image above was generated using Bing's AI image creator.
 
 ### Development Environment
+
 DeepShark was developed using Windows Subsystem for Linux (WSL) with an Ubuntu image.  The reported g++ compiler version used for the C++ code is:
 
 `g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0`
@@ -34,6 +35,7 @@ Texas Hold 'Em is a relatively simple game, but there are three areas that were 
 I wrote both unit tests and functional tests that helped me catch many bugs in the above functionality.  I also wrote a user interface using @p-ranav's [tabulate](https://github.com/p-ranav/tabulate) table maker library.  The user interface allowed me to watch each game play out action-by-action, which was useful for debugging the game environment code.  It's also useful for playing back deserialized games that have been recorded to disk.
 
 ### Implementing the Game Environment in C++
+
 I wrote the Texas Hold 'Em game loop in C++.  My previous deep reinforcement project [Checkers-MCTS](https://github.com/AlexMGitHub/Checkers-MCTS) was written entirely in Python, and the slow performance of the checkers game environment became an issue when generating training data.  I experimented with using the `ctypes` Python library to run C functions from Python scripts for my [PyCEM](https://github.com/AlexMGitHub/PyCEM) FDTD simulator, which provided the speed of the C language with the convenience of writing the user interface in Python.
 
 The PyCEM experiment with `ctypes` was a success, but I ran into issues getting C to do what I wanted it to do.  I appreciated the performance and control provided by the C language, but I was frustrated by its quirks and lack of high-level language features.  "Modern" C++ appeared to be the best of both worlds: the performance of C with a standard library that provides many high-level language features.  The `ctypes` Python library is not compatible with C++, but because C++ is essentially a superset of C it is possible to work around this limitation.
@@ -43,6 +45,7 @@ I compiled a shared library of the poker game loop that was written using C++ co
 The performance of the game environment in C++ is impressive.  I wrote a player AI that runs a 1000-game Monte Carlo simulation every time it makes a decision post-flop.  Even so, a 10-player tournament with hundreds of games only takes seconds to run.  I also used multithreading in C++ to run multiple tournaments in parallel.  With four parallel threads it only takes about three minutes to simulate 100 poker tournaments.
 
 ### Initial "Dumb" AI Players
+
 I needed to be able to test the poker environment to ensure that the game rules were properly implemented.  I did this by writing "dumb" (i.e. hard-coded) AI player classes to play out poker games.  The first "AI" that I created was a purely random player who would randomly choose from the list of legal actions.  If the chosen action was a bet or raise, the AI would randomly choose a value between the minimum bet and the maximum value of its chip stack.
 
 This very simple AI allowed me to test out my user interface, serialization/deserialization code, and catch some bugs in the poker environment.  But once the code seemed functional I added another "scripted" AI class that accepts a pre-planned list of actions to take.  I used these scripted AI players to perform functional testing of the code by devising a few scripted scenarios that involved complicated end-game logic such as multiple side pots and ties.  This testing allowed me to catch a few subtle bugs in the poker code which led to improper payouts when there were multiple winners.
@@ -86,28 +89,45 @@ Overall, the MTAG appears to be a good compromise between the too-tight TAGs and
 ## Deep Reinforcement Learning
 
 ### Considerations for Neural Network Architecture
+
 One point of consideration is whether the neural network architecture ought to be some sort of recurrent neural network that remembers previous states.
 
 Without memory, the neural network will essentially just be learning how strong a particular poker hand is.  This functionality could be easily reproduced by a look-up table.  An ANN with memory of previous states could identify player behavior patterns.  As mentioned previously, poker playing styles fall along a two-axis spectrum of "tight" or "loose" and "aggressive" or "passive."  The resulting four quadrants describe play styles that could be identified and exploited by an opponent.  For instance, a loose and aggressive play style describes a player who plays a wide range of starting hands and bets aggressively - which means that they are often bluffing.  An observant opponent might notice this tendency to play weak hands and bluff, and be more likely to call their raises.  Similarly, a tight and aggressive player will only play a narrow range of hands and will bet aggressively when he has good cards.  An observant player would be less likely to call their bets as they probably aren't bluffing, and may be able to steal blinds if the player is too tight.
 
-### Mapping the Game State to a Neural Network Input
+On the other hand, it's not clear to me that a neural network with memory will be able to identify play styles.  The training data will consist of many tournaments from the perspective of all of the players at the table.  In other words, a 10-player tournament will be used to train the neural network ten times - as if it were playing as each of the ten players.  Could a large enough set of training data and a deep enough network learn to look back at a player's history and suss out patterns?  Perhaps, but I don't intend to go to such lengths for this project.
 
-*   Legal Actions
-    *   Vector of length 7 for 7 actions, 1 if action is legal 0 otherwise
-*   Hole Cards
-    *   Suit is one hot encoded (length 4)
-    *   Rank is one hot encoded (length 13)
+I have chosen to limit the ambition of this project to training a simple neural network architecture on a relatively small amount of training data.  The desired goal is to produce a network that can mimic the level of play of the heuristic AIs, and to have that neural network model make predictions directly within the C++ game environment.  Achieving these goals would provide the building blocks necessary to perform computationally efficient deep reinforcement learning, which was lacking in the much more ambitious [Checkers-MCTS](https://github.com/AlexMGitHub/Checkers-MCTS) project.  In that project the bottleneck was generating training data through self-play due to Python's slow speed in executing the game environment.  I can use what I've learned in this project to generate training data in C++ going forward, hopefully on more meaningful projects than a simple poker AI.
+
+### Executing a Trained Neural Network in C++
+
+Assuming that I train a neural network using the extensive Python ML/AI ecosystem, the next question was how to then execute that trained model within the C++ game loop.  After a brief search, I found that PyTorch [has a workflow](https://pytorch.org/tutorials/advanced/cpp_export.html) for exporting a trained PyTorch model to disk that can be loaded and executed from C++.
+
+### Final Neural Network Architecture
+
+The final neural network architecture will accept a vector of inputs extracted from the C++ game state.  There will be several hidden "dense" or fully connected layers.  The output will be a vector of 8 values; 7 values correspond to the probability of choosing each potential legal action - similar to the "policy head" of the *AlphaGo* architecture.  The eighth value is the amount of chips the player will bet.  
+
+I do not implement a "value head" as used by *AlphaGo* and my [Checkers-MCTS](https://github.com/AlexMGitHub/Checkers-MCTS) project.  I don't intend to train the neural network through self-play and so there is no need for a value head to provide truncated rollouts during a MCTS search.  This also illustrates the limitation of using poker as the game environment - there isn't much benefit from using a neural network to evaluate potential future moves in the same way as in board games like Go or checkers.  These games have sizeable branching factors which make random rollouts less effective, whereas for poker it just makes more sense to do a simple Monte Carlo simulation and estimate your probability of winning the hand.
+
+### Mapping the C++ Game State to a Neural Network Input
+
+*   Legal Actions (7 inputs)
+    *   Vector of length 7 corresponding to 7 potential actions
+    *   1 if action is legal, 0 otherwise
+*   Hole Cards (10 inputs)
+    *   Four suits are one-hot encoded, length 4
+    *   Rank is ordinal encoded (normalized by dividing by 13)
     *   All 0s for no suit/rank
-*   Flop Cards
-*   Turn Card
-*   River Card
-*   Chips to call
+    *   5 inputs per card, two cards = 10 inputs
+*   Flop Cards (3 cards * 5 = 15 inputs)
+*   Turn Card (5 inputs)
+*   River Card (5 inputs)
+*   Chips to call (1 input)
     *   All chips represented as fraction of total chips at table
     *   Divide by (initial_num_players * MAX_BUY_IN)
-*   Minimum Bet
-*   Maximum Bet (AKA chip count)
-*   Amount in pot total
-*   Amount in pot per player
+*   Maximum Bet (AKA chip count) (1 input)
+*   Amount in pot total (1 input)
+*   Amount in pot per player (10 inputs)
+*   Player index (10 inputs?)
 *   Position (blinds)
 *   Player hand rank
 *   Players remaining in tournament
@@ -125,7 +145,7 @@ Reward is calculated as the delta between the initial player chip count at the s
 
 Outputs: value head outputing Q-value (above calculation) and policy head outputing probability of each legal move
 
-### Converting the C++ Game State to a Neural Network Input
+
 
 
 
@@ -142,7 +162,9 @@ http://randomprobabilities.net/texas-holdem.php (accessed Jan. 02, 2024).
 
 3.  “Strategy: Blind structure - how the blinds increase,” PokerStrategy.com, 2024. https://www.pokerstrategy.com/strategy/live-poker/how-blinds-increase-structure/ (accessed Jan. 02, 2024).
 
+4‌.  “Loading a TorchScript Model in C++ — PyTorch Tutorials 2.2.0+cu121 documentation,” pytorch.org. https://pytorch.org/tutorials/advanced/cpp_export.html (accessed Jan. 03, 2024).
 ‌
+
 ## Appendices
 
 ### Appendix A: Abbreviated No Limit Texas Hold 'Em Poker Rules
@@ -154,6 +176,7 @@ There are up to five community cards dealt during the different phases of the ga
 The following is a partial list of rules that are specific to the No Limit Texas Hold 'Em poker, some of which were tricky to implement:
 
 #### Blinds and Order of Play
+
 *   A dealer button is assigned to a player to keep track of the order of play
     *   The dealer button is rotated clockwise around the table at the start of each new game.
     *   The small blind is the player directly to the left (clockwise) of the dealer button
@@ -174,6 +197,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
         *   Pre-flop the big blind still acts last, meaning the dealer/small blind acts first.
 
 #### Raising
+
 *   Raises do not have a maximum size in No Limit Hold 'Em (a player can go all-in)
     *   The minimum raise is the previous raise size in the current betting round.  If no raise has occurred yet the minimum raise size is the value of the big blind
     *   If a player raises less than the minimum raise (by going all-in) the betting action is not re-opened
@@ -181,6 +205,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
         *   A player who has not yet called the previous bet is allowed to re-raise on his turn after the player goes all-in
 
 #### Side Pots
+
 *   If there are N players at the poker table, there could theoretically be the main pot and as many as N - 1 side pots.
     *   Side pots occur when a player goes all-in and betting continues amongst the other players
         *   This could occur because a player could not meet the minimum raise or big blind
@@ -190,6 +215,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
 *   But if the all-in player wins the Showdown, he is only eligible to win the side pot(s) he has contributed to - not the main pot or any side pots that took place after he went all-in
 
 #### Ties and Multiple Winners
+
 *   If there are N players at the poker table, there could theoretically be an N-way tie (e.g. community cards are a Royal Flush and no one folds before the River)
 *   In the case of a tie, the pot is split evenly amongst the winners.  If the pot is not evenly divisible then the remaining chip(s) are given to the player closest to the left (clockwise) of the dealer.
 *   It's possible for there to be multiple ties splitting multiple side pots, and each pot must be split amongst the winners
@@ -310,6 +336,7 @@ The following is a partial list of rules that are specific to the No Limit Texas
                 *   If the random number is <= ratio then call, otherwise fold
 
 ## Appendix C: Notes
+
 I received an error when trying to run the C shared library from Python with Clib:
 
 `libstdc++.so.6: version GLIBCXX_3.4.30' not found`
