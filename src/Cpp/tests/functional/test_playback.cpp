@@ -29,18 +29,18 @@ int main()
     int num_players = 10;
     //vector<AI_Type> player_ai_types(num_players, AI_Type::Random);
     vector<AI_Type> player_ai_types;
-    // for (int i = 0; i < num_players; i += 2)
+    for (int i = 0; i < num_players; i += 2)
+    {
+        player_ai_types.push_back(AI_Type::NeuralNetworkAI);
+        player_ai_types.push_back(AI_Type::Heuristic_LAG);
+    }
+    // for (int i = 0; i < num_players - 1; i += 3)
     // {
     //     player_ai_types.push_back(AI_Type::Heuristic_TAG);
     //     player_ai_types.push_back(AI_Type::Heuristic_LAG);
+    //     player_ai_types.push_back(AI_Type::Heuristic_MTAG);
     // }
-    for (int i = 0; i < num_players - 1; i += 3)
-    {
-        player_ai_types.push_back(AI_Type::Heuristic_TAG);
-        player_ai_types.push_back(AI_Type::Heuristic_LAG);
-        player_ai_types.push_back(AI_Type::Heuristic_MTAG);
-    }
-    player_ai_types.push_back(AI_Type::Heuristic_TAG);
+    // player_ai_types.push_back(AI_Type::Heuristic_TAG);
     int num_games_per_blind_level = 20;
     int seed = 72;
     int tournament_num = seed;
@@ -59,6 +59,6 @@ int main()
     //cout << std::filesystem::current_path() << endl;
     TournamentHistory th = read_tournamenthistory(the.filename);
     // TournamentHistory th = read_tournamenthistory("recorded_games/2023-12-25/multithread_testing/tourn_9__2023-12-25__16-02-10.bin");
-    //playback_tournament(th);
+    playback_tournament(th);
     return 0;
 }

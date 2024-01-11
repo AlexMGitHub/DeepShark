@@ -129,6 +129,13 @@ void get_tournament_summary(struct tournament_summary* summary, char filename[])
     summary->num_games = th.num_games;
 }
 
+void write_nn_vector_data(char read_filename[], char write_filename[])
+{
+    string read_filename_str = read_filename;
+    string write_filename_str = write_filename;
+    write_nn_vector_data(read_filename_str, write_filename_str);
+}
+
 // int main()
 // {
 //     int player_ai_types[] = { 3,4,3,4,3,4,3,4,3,4 };

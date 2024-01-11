@@ -13,10 +13,12 @@
 #include <random>       // For shuffle(), uniform_int_distribution<>
 #include <utility>      // For std::pair, std::to_underlying()
 // Project headers
-#include "player.hpp"
 #include "constants.hpp"
+#include "player.hpp"
+#include "serialize.hpp"
 #include "storage.hpp"
 #include "texasholdem.hpp"
+#include <torch/script.h> // One-stop header.
 // Using statements
 using std::array;
 using std::cout;
@@ -644,35 +646,7 @@ void HeuristicAI::player_act(GameState& gs)
             }
         }
     }
-
-    // if (gs.chips_to_call <= bb_value)
-    // {
-    //     // Raise
-    //     // Call 1 BB, bet 4 BB + 1 BB for every "limper"
-    //     // BB will increase in value over time, compare with stack
-
-
-
-    // }
-    // else
-    // {
-    //     /*
-    //     how many active players remaining in game?
-    //     How many of these active players have called the current raise?
-    //     How many players still need to act after me?
-    //     How strong is my hand?
-    //     how strong is my position?
-    //     How much does it cost to call?
-    //     How big is my stack?
-
-
-    //     */
-
-    // }
-
 }
-
-
 
 Position HeuristicAI::assess_hole_cards(GameState& gs)
 {
@@ -920,6 +894,86 @@ unsigned HeuristicAI::round_bet(double bet)
 }
 
 
+/* NeuralNetworkAI Method Definitions
+******************************************************************************/
+void NeuralNetworkAI::player_act(GameState& gs)
+{
+    /**
+     * Make inference using trained neural network.
+     *
+     * @param gs is the current game state.
+     * @return Modifies the game state with the chosen action and bet amount.
+    */
+    // Convert game state to a vector of doubles
+    vector<double> nn_vector = game_state_to_nn_vector(gs);
+    // Remove 8 output states and only leave input states (60 inputs)
+    nn_vector.resize(NN_INPUT_SIZE);
+    // Convert vector game state to a tensor and make a model inference
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(torch::tensor(nn_vector).unsqueeze(0));
+    auto output = module.forward(inputs).toTuple();
+    // Parse the model output
+    at::Tensor actions = output->elements()[0].toTensor();
+    at::Tensor bet = output->elements()[1].toTensor();
+    double min_action_logit = at::min(actions).item<double>();
+    for (int i = 0; i < LEGAL_ACTION_COUNT; i++)
+    {
+        if (!legal_act(Legal_Actions[i], gs))
+        {
+            actions[0][i] = min_action_logit - 1;
+        }
+    }
+    int model_action_idx = at::argmax(actions).item<int>();
+    Action model_action = Legal_Actions[model_action_idx];
+    assert(legal_act(model_action, gs) &&
+        "Neural Network chose illegal action!");
+    unsigned model_bet = 0;
+    if (model_action == Action::Fold || model_action == Action::Check)
+    {
+        model_bet = 0;
+    }
+    else if (model_action == Action::Call)
+    {
+        model_bet = gs.chips_to_call;
+    }
+    else if (model_action == Action::All_In)
+    {
+        model_bet = gs.max_bet;
+    }
+    else
+    {
+        model_bet = round_bet(bet.item<double>() * gs.max_bet);
+        if (model_bet < gs.chips_to_call + gs.min_to_raise)
+        {
+            if (gs.chips_to_call + gs.min_to_raise < gs.max_bet)
+            {
+                model_bet = gs.chips_to_call + gs.min_to_raise;
+            }
+            else
+            {
+                model_bet = gs.max_bet;
+                model_action = Action::All_In;
+            }
+        }
+        else if (model_bet == gs.max_bet)
+        {
+            model_bet = gs.max_bet;
+            model_action = Action::All_In;
+        }
+
+    }
+    gs.player_action = model_action;
+    gs.player_bet = model_bet;
+}
+
+unsigned NeuralNetworkAI::round_bet(double bet)
+{
+    /**
+     * Convert double to unsigned and round to nearest multiple of small blind.
+    */
+    return SMALL_BLIND * static_cast<unsigned>(std::lroundl(bet / SMALL_BLIND));
+}
+
 /* Player Method Definitions
 ******************************************************************************/
 void Player::eliminate_player()
@@ -1082,6 +1136,9 @@ void Player::m_select_ai(std::mt19937& rng)
         break;
     case AI_Type::Heuristic_MTAG:
         m_ai = make_shared<HeuristicAI>(rng, PlayStyle::MTAG);
+        break;
+    case AI_Type::NeuralNetworkAI:
+        m_ai = make_shared<NeuralNetworkAI>(rng);
         break;
     default:
         cout << "Invalid player AI!" << endl;

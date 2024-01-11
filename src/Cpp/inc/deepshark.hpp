@@ -39,6 +39,7 @@ extern "C"
         size_t num_games;
     };
     void get_tournament_summary(struct tournament_summary* summary, char filename[]);
+    void write_nn_vector_data(char read_filename[], char write_filename[]);
 }
 
 struct tourn_data
@@ -81,6 +82,10 @@ struct tourn_data
             else if (int_player_ai_types[i] == 5)
             {
                 player_ai_types.push_back(constants::AI_Type::Heuristic_MTAG);
+            }
+            else if (int_player_ai_types[i] == 6)
+            {
+                player_ai_types.push_back(constants::AI_Type::NeuralNetworkAI);
             }
             else
             {

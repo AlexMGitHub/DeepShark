@@ -1,4 +1,4 @@
-"""."""
+"""Script to run C++ game environment and generate training data."""
 # Imports
 ###############################################################################
 # Standard system imports
@@ -41,10 +41,10 @@ num_players = ctypes.c_int(players)
 # Player AI types
 player_ai_types = (ctypes.c_int * players)()
 for idx, x in enumerate(player_ai_types):
-    # if idx % 2 == 0:
-    #     player_ai_types[idx] = 5  # MTAG
-    # else:
-    #     player_ai_types[idx] = 3  # TAG
+    if idx % 2 == 0:
+        player_ai_types[idx] = 0  # Random
+    else:
+        player_ai_types[idx] = 6  # NN
     # if idx in [0, 3, 6]:
     #     player_ai_types[idx] = 3  # TAG
     # elif idx in [1, 4, 7]:
@@ -53,15 +53,16 @@ for idx, x in enumerate(player_ai_types):
     #     player_ai_types[idx] = 5  # MTAG
     # else:
     #     player_ai_types[idx] = 3  # TAG
-    if idx == players - 1:
-        player_ai_types[idx] = 5  # MTAG
-    else:
-        player_ai_types[idx] = 0  # Random
+    # if idx == players - 1:
+    #     player_ai_types[idx] = 5  # MTAG
+    # else:
+    #     player_ai_types[idx] = 0  # Random
+    # player_ai_types[idx] = 5  # MTAG
 
 # Number of games before increasing blind amount
 num_games_per_blind_level = ctypes.c_int(20)
 # Name of directory to store game results in
-directory = "random"
+directory = "nn_random"
 b_directory = directory.encode("utf-8")  # create byte objects from the strings
 tourn_directory = ctypes.c_char_p(b_directory)
 # Number of tournaments to run
@@ -88,5 +89,3 @@ run_tournaments(
     num_tournaments,
     debug
 )
-
-print(run_tournaments)

@@ -15,6 +15,7 @@
 // Project headers
 #include "cards.hpp"
 #include "constants.hpp"
+#include <torch/script.h> // One-stop header.
 
 /* Forward Declarations
 ******************************************************************************/
@@ -104,6 +105,30 @@ private:
     // Data Members
     std::uniform_real_distribution<> m_uniform_dist =
         std::uniform_real_distribution<>(0.0, 1.0);
+};
+
+class NeuralNetworkAI : public PlayerAI
+{
+public:
+    // Constructors
+    NeuralNetworkAI(std::mt19937& rng) :
+        PlayerAI(rng)
+    {
+        try {
+            // Deserialize the ScriptModule from a file using torch::jit::load().
+            module = torch::jit::load(model_path);
+        }
+        catch (const c10::Error& e) {
+            std::cerr << "error loading the model\n";
+        }
+    }
+    // Data Members
+    const char model_path[100] = "recorded_games/models/traced_poker_model.pt";
+    torch::jit::script::Module module;
+    const constants::AI_Type ai = constants::AI_Type::NeuralNetworkAI;
+    // Member Functions
+    void player_act(GameState& gs) override;
+    unsigned round_bet(double bet);
 };
 
 /* Player Declarations

@@ -7,6 +7,7 @@
 /* Headers
 ******************************************************************************/
 // C++ standard library
+#include <array>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -30,8 +31,12 @@ TournamentHistory read_tournamenthistory(
 void write_tournamenthistory(std::string filename, TournamentHistory& th);
 std::string create_timestamp();
 std::string get_date();
-
-
-
-
-
+void write_nn_vector_data(std::string read_filename, std::string write_filename);
+std::vector<double> game_state_to_nn_vector(GameState gs);
+int return_suit_one_hot(constants::Suit suit);
+unsigned get_total_player_bets(
+    int player_idx,
+    std::array<
+    std::array<unsigned, constants::MAX_BETTING_ROUNDS>, constants::MAX_PLAYER_COUNT>
+    m_player_bets
+);

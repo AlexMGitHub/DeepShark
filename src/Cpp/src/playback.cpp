@@ -210,6 +210,9 @@ string to_string(const constants::AI_Type& ai)
     case AI_Type::Heuristic_MTAG:
         return "Heuristic_MTAG";
         break;
+    case AI_Type::NeuralNetworkAI:
+        return "NeuralNetworkAI";
+        break;
     default:
         cout << "Invalid AI type for string conversion!" << endl;
         exit(-1);

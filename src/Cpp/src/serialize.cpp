@@ -19,6 +19,7 @@
 #include "serialize.hpp"
 #include "storage.hpp"
 // Using statements
+using std::array;
 using std::cout;
 using std::endl;
 using std::replace;
@@ -376,4 +377,123 @@ std::string get_date()
     std::stringstream datestamp;
     datestamp << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d");
     return datestamp.str();
+}
+
+void write_nn_vector_data(
+    std::string read_filename, std::string write_filename)
+{
+    vector<double> nn_vector;
+    TournamentHistory th = read_tournamenthistory(read_filename);
+    std::ofstream fs(write_filename, std::ios::app | std::ios::binary);
+    if (!fs.is_open())
+    {
+        cout << "Failed to open " << write_filename << endl;
+        exit(-1);
+    }
+    else
+    {
+        for (const auto& gh : th.games)
+        {
+            for (const auto& gs : gh.states)
+            {
+                nn_vector = game_state_to_nn_vector(gs);
+                fs.write(reinterpret_cast<char*>(&nn_vector[0]),
+                    sizeof(nn_vector[0]) * NN_VECTOR_SIZE);
+            }
+        }
+    }
+    fs.close();
+}
+
+vector<double> game_state_to_nn_vector(GameState gs)
+{
+    vector<double> nn_vector(NN_VECTOR_SIZE, 0);
+    // Legal actions (7 inputs)
+    for (const auto& act : gs.legal_actions)
+    {
+        nn_vector[to_underlying(act) - 1] = 1;
+    }
+    // Hole Cards (10 inputs)
+    nn_vector[7] = to_underlying(gs.hole_cards[gs.player_idx].first.rank) / 14.0;
+    int suit_idx = return_suit_one_hot(gs.hole_cards[gs.player_idx].first.suit);
+    if (suit_idx != 0) { nn_vector[7 + suit_idx] = 1; }
+    nn_vector[12] = to_underlying(gs.hole_cards[gs.player_idx].second.rank) / 14.0;
+    suit_idx = return_suit_one_hot(gs.hole_cards[gs.player_idx].second.suit);
+    if (suit_idx != 0) { nn_vector[12 + suit_idx] = 1; }
+    // Flop cards (15 inputs)
+    nn_vector[17] = to_underlying(gs.flop_card1.rank) / 14.0;
+    suit_idx = return_suit_one_hot(gs.flop_card1.suit);
+    if (suit_idx != 0) { nn_vector[17 + suit_idx] = 1; }
+    nn_vector[22] = to_underlying(gs.flop_card2.rank) / 14.0;
+    suit_idx = return_suit_one_hot(gs.flop_card2.suit);
+    if (suit_idx != 0) { nn_vector[22 + suit_idx] = 1; }
+    nn_vector[27] = to_underlying(gs.flop_card3.rank) / 14.0;
+    suit_idx = return_suit_one_hot(gs.flop_card3.suit);
+    if (suit_idx != 0) { nn_vector[27 + suit_idx] = 1; }
+    // Turn card (5 inputs)
+    nn_vector[32] = to_underlying(gs.turn_card.rank) / 14.0;
+    suit_idx = return_suit_one_hot(gs.turn_card.suit);
+    if (suit_idx != 0) { nn_vector[32 + suit_idx] = 1; }
+    // River card (5 inputs)
+    nn_vector[37] = to_underlying(gs.river_card.rank) / 14.0;
+    suit_idx = return_suit_one_hot(gs.river_card.suit);
+    if (suit_idx != 0) { nn_vector[37 + suit_idx] = 1; }
+    // Chips to call (1 input)
+    nn_vector[42] = gs.chips_to_call /
+        static_cast<double>(gs.initial_num_players * MAX_BUY_IN);
+    // Stack size / max bet (1 input)
+    nn_vector[43] = gs.max_bet /
+        static_cast<double>(gs.initial_num_players * MAX_BUY_IN);
+    // Total amount in pot (1 input)
+    nn_vector[44] = gs.pot_chip_count /
+        static_cast<double>(gs.initial_num_players * MAX_BUY_IN);
+    // Amount in pot from player (1 input)
+    nn_vector[45] = get_total_player_bets(gs.player_idx, gs.pot_player_bets) /
+        static_cast<double>(gs.initial_num_players * MAX_BUY_IN);
+    // Position/blinds (11 inputs)
+    int blind_idx = to_underlying(gs.blinds[gs.player_idx]);
+    if (blind_idx != 0) { nn_vector[45 + blind_idx] = 1; }
+    // Hand rank (1 input)
+    nn_vector[57] = to_underlying(gs.hand_ranks[gs.player_idx]) / 11.0;
+    // Number of active (unfolded) players remaining (1 input)
+    nn_vector[58] = gs.num_active_players /
+        static_cast<double>(gs.initial_num_players);
+    // Number of players remaining in tournament (1 input)
+    nn_vector[59] = gs.num_players /
+        static_cast<double>(gs.initial_num_players);
+    // One-hot encoding of chosen action (7 outputs)
+    nn_vector[60 + to_underlying(gs.player_action) - 1] = 1;
+    // Player bet scaled by player's stack size (1 output)
+    nn_vector[67] = static_cast<double>(gs.player_bet) / gs.max_bet;
+    return nn_vector;
+}
+
+int return_suit_one_hot(Suit suit)
+{
+    for (int i = 0; i < NUMBER_SUITS; i++)
+    {
+        if (suit == Card_Suits[i])
+        {
+            return i + 1;
+        }
+    }
+    return 0;  // If Suit is No_Card one-hot will be all zeros
+}
+
+unsigned get_total_player_bets(
+    int player_idx,
+    std::array<
+    std::array<unsigned, constants::MAX_BETTING_ROUNDS>, constants::MAX_PLAYER_COUNT>
+    m_player_bets
+)
+{
+    /**
+     * Return the total number of chips bet by the player in the game so far.
+    */
+    unsigned total = 0;
+    for (int i = 0; i < MAX_BETTING_ROUNDS; i++)
+    {
+        total += m_player_bets[player_idx][i];
+    }
+    return total;
 }

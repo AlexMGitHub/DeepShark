@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <memory>
+#include <tuple>
+#include <vector>
 
 int main(int argc, const char* argv[]) {
   if (argc != 2) {
@@ -24,9 +26,29 @@ int main(int argc, const char* argv[]) {
 
   // Create a vector of inputs.
   std::vector<torch::jit::IValue> inputs;
-  inputs.push_back(torch::ones({ 1, 3, 224, 224 }));
+  // inputs.push_back(torch::ones({ 1, 3, 224, 224 }));  // Example model
+  inputs.push_back(torch::ones({ 1, 60 }));  // Poker model
 
   // Execute the model and turn its output into a tensor.
-  at::Tensor output = module.forward(inputs).toTensor();
-  std::cout << output.slice(/*dim=*/1, /*start=*/0, /*end=*/5) << '\n';
+  auto output = module.forward(inputs).toTuple();
+  at::Tensor actions = output->elements()[0].toTensor();
+  at::Tensor bet = output->elements()[1].toTensor();
+  std::cout << actions << '\n';
+  std::cout << bet << '\n';
+  std::cout << at::argmax(actions) << '\n';
+  std::cout << bet.item<float>() << '\n';
+  actions[0][3] = -99;
+  std::cout << actions << '\n';
+  bet[0] = -98;
+  std::cout << bet << '\n';
+  std::vector<double> input = { 0,1,2,3 };
+  at::Tensor tensor_input = torch::tensor(input).unsqueeze(0);
+  std::cout << tensor_input << '\n';
+  std::cout << torch::softmax(tensor_input, 1) << '\n';
+  tensor_input[0][3] = -1.0;
+  std::cout << torch::softmax(tensor_input, 1) << '\n';
+  std::cout << at::min(actions) << '\n';
+  double x = 20;
+  x += at::min(actions).item<double>();
+  std::cout << x << '\n';
 }

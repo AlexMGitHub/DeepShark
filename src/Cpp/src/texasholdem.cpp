@@ -68,7 +68,7 @@ void TexasHoldEm::begin_test_game(TestCase tc)
     /**
      * Execute a single test game that plays out a scripted scenario.
     */
-    for (const auto& ai : player_ai_types)
+    for ([[maybe_unused]] const auto& ai : player_ai_types)
     {
         assert((ai == AI_Type::Scripted) && "All AI types must be scripted!");
     }
@@ -84,7 +84,7 @@ void TexasHoldEm::begin_mc_game(vector<Card> starting_hand, size_t num_runs)
     /**
      * Execute Monte Carlo simulations.
     */
-    for (const auto& ai : player_ai_types)
+    for ([[maybe_unused]] const auto& ai : player_ai_types)
     {
         assert((ai == AI_Type::CheckCall) && "All AI types must be CheckCall!");
     }
