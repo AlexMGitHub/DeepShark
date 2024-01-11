@@ -28,9 +28,9 @@ DeepShark was developed using Windows Subsystem for Linux (WSL) with an Ubuntu i
 
 There is some non-portable code (e.g. system("clear") to clear the terminal) that will not run in a non-Linux environment.
 
-I wrote the Python code using Python 3.11.5.  A *requirements.txt* file is included for convenience.
+I wrote the Python code using Python 3.11.5 and PyTorch.  Pandas, NumPy, and Seaborn are also used in the Jupyter notebooks.
 
-LibTorch is required to execute a trained PyTorch model in C++.  See the [Executing a Trained Neural Network in C++](#executing_a_trained_neural_network_in_c++) section for details.
+LibTorch is required to execute a trained PyTorch model in C++.  See the [Executing a Trained Neural Network in C++](#executing-a-trained-neural-network-in-c++) section for details.
 
 ## Description of the Poker Environment
 
@@ -63,6 +63,10 @@ The performance of the game environment in C++ is impressive.  I wrote a player 
 I needed to be able to test the poker environment to ensure that the game rules were properly implemented.  I did this by writing "dumb" (i.e. hard-coded) AI player classes to play out poker games.  The first "AI" that I created was a purely random player who would randomly choose from the list of legal actions.  If the chosen action was a bet or raise, the AI would randomly choose a value between the minimum bet and the maximum value of its chip stack.
 
 This very simple AI allowed me to test out my user interface, serialization/deserialization code, and catch some bugs in the poker environment.  But once the code seemed functional I added another "scripted" AI class that accepts a pre-planned list of actions to take.  I used these scripted AI players to perform functional testing of the code by devising a few scripted scenarios that involved complicated end-game logic such as multiple side pots and ties.  This testing allowed me to catch a few subtle bugs in the poker code which led to improper payouts when there were multiple winners.
+
+<p align="center">
+<img src="docs/img/poker_ui.png" title="Poker UI" alt="Poker UI" width="600"/>
+</p>
 
 #### Heuristic AI
 
@@ -124,11 +128,11 @@ I converted the C++ game state into an array of doubles that represented various
 
 The labels for the data are also contained in the game state.  They are the player's chosen action and resulting bet amount.  The chosen action is one-hot encoded to represent each of the 7 possible player actions, while the player bet is a single value scaled to between 0 and 1 by dividing the bet by the player's chip count.
 
-More details can be found in Appendix C of `docs/notes/appendices.md`.
+More details can be found in Appendix C of [docs/notes/appendices.md](docs/notes/appendices.md).
 
 ### Neural Network Architecture
 
-The neural network architecture accepts the vector of inputs extracted from the C++ game state.  There are four hidden "dense" or fully connected layers.  The input layer accepts 60 input features and the output is 8 features.
+The neural network architecture accepts the vector of inputs extracted from the C++ game state.  There are four hidden "dense" or fully-connected layers.  The input layer accepts 60 input features and the output is 8 features.
 
 I implemented this neural network using PyTorch in the Jupyter notebook `train_nn.ipynb`.  The final layer's 8 outputs are split into two quantities: 7 logits representing the 7 possible legal actions, and 1 output that is put through a Sigmoid function to constrain the value between 0 and 1.  This value represents the player's bet as a fraction of the player's total chip stack.
 
@@ -142,13 +146,13 @@ I do not implement a "value head" as used by *AlphaGo* and my [Checkers-MCTS](ht
 
 I wrote a C++ function that reads a recorded tournament data file and converts each game state into a vector representing the neural network inputs and the training label (player action and bet).
 
-I compiled this function into a C shared library that is accessible using `ctypes` in Python, and converted 100 tournaments into a single binary file representing the training data, and an additional 20 tournaments into a file representing the test data.  Each training and test tournament had a unique seed and only contained ten MTAG players at the table.  I thus intended to have the neural network learn to mimic the MTAG play style.
+I compiled this function into a C shared library that is accessible using `ctypes` in Python, and converted 100 tournaments into a single binary file representing the training data, and an additional 20 tournaments into a file representing the test data.  Each training and test tournament had a unique seed and ten MTAG players at the table.  I thus intended to have the neural network learn to mimic the MTAG play style.
 
 I created a custom dataset class to read in the binary data and return individual inputs and labels.  The details can be found in `train_nn.ipynb` in the `src/deepshark/Jupyter/` directory.
 
 ### Imbalanced Dataset
 
-The training loop outputs the network's classification accuracy on the legal actions at the end of each epoch of training.  Imagine my surprise when the classification accuracy quickly shot up to over 89% after just a few epochs!
+The training loop outputs the network's classification accuracy on the test data's legal actions at the end of each epoch of training.  Imagine my surprise when the classification accuracy quickly shot up to over 89% after just a few epochs!
 
 I quickly realized the issue: the MTAG play style folds probably 85 to 90% of the hands that it is dealt.  Therefore I have a classification problem with an extremely imbalanced data set, and the neural network learned to just predict "fold" every time.
 
@@ -158,11 +162,11 @@ I ran training for 100 epochs, and chose to use the model from the epoch with th
 
 ### Implementing the Neural Network Model in C++
 
-The PyTorch tutorial [[4]](#references) must be converted to Torch Script to be used by the LibTorch C++ API.  For my simple network, the model can be "traced" by sending a single input through the network.  The resulting traced model is saved to disk and can be loaded and executed by LibTorch.
+The PyTorch tutorial [[4]](#references) explains that the PyTorch model must be converted to Torch Script to be used by the LibTorch C++ API.  For my simple network, the model can be "traced" by sending a single input through the network.  The resulting traced model is saved to disk and can be loaded and executed by LibTorch.
 
-I was able to do this with the minimal C++ example provided by the PyTorch tutorial.  The wrinkle is that the minimal example uses `CMake` to build LibTorch.  Up to this point I had been using `Make` to execute makefiles for creating both my test executables and the shared library.
+I was able to execute my trained model in C++ by following the minimal C++ example provided by the PyTorch tutorial.  The wrinkle is that the minimal example uses `CMake` to build the LibTorch library.  Up to this point I had been using `Make` to run makefiles that created both my test executables and the DeepShark shared library.
 
-I had to take a crash course on `CMake` to figure out how to integrate LibTorch into my existing project.  I found the tutorial [[5]](#references) on "Modern CMake" by Henry Schreiner to be the most helpful.  After some fiddling with `CMake` and doing some experimentation with the C++ API to manipulate tensors, I was ready to write a new player AI class that used neural network inferences to decide the proper move.
+I had to take a crash course on `CMake` to figure out how to integrate LibTorch into my existing project.  I found the tutorial [[5]](#references) on "Modern CMake" by Henry Schreiner to be the most helpful resource on `CMake` out there.  After some fiddling with `CMake` and doing some experimentation with the C++ API to manipulate tensors, I was ready to write a new player AI class that used neural network inferences to decide the proper move.
 
 I was able to successfully generate tournament result data using the neural network player AI class.  The data generation benefited from multiprocessing to run tournaments in parallel.  I used CPU inferences rather than the GPU, in part because I was uncertain how multiprocessing interacted with a single GPU used for inference.
 
@@ -180,7 +184,7 @@ It also had performance comparable to the MTAG against the LAG, TAG, and random 
 
 ## Final Thoughts
 
-DeepShark has successfully achieved the goals that I set out for it.  I have a much stronger understanding of modern C++, and as a bonus I also learned a fair bit about modern CMake, which is the industry-standard build system for C and C++.
+DeepShark has achieved the goals that I set out for it.  I have a much stronger understanding of modern C++, and as a bonus I also learned a fair bit about modern CMake, which is the industry-standard build system for C and C++.
 
 I now have a work flow that I can apply to future deep reinforcement learning projects.  I can use PyTorch and the larger Python ecosystem to run a self-play training pipeline that benefits from the speed of C++.
 
