@@ -29,6 +29,8 @@ class PlayerAI
 public:
     // Constructors
     PlayerAI(std::mt19937& rng) : rng(rng) {}
+    // Destructor
+    virtual ~PlayerAI() = default;
     // Data Members
     std::mt19937& rng;
     // Member Functions
